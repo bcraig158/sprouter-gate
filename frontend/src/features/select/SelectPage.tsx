@@ -43,8 +43,14 @@ export default function SelectPage() {
   const [state, setState] = useState<StateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedNight, setSelectedNight] = useState<'tue' | 'thu' | null>(null);
   const [ticketsRequested, setTicketsRequested] = useState(1);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     fetchState();
