@@ -609,7 +609,11 @@ function App() {
         <img 
           src="https://storage.googleapis.com/sprouter-buckets/files/cropped_image_1759168884.png" 
           alt="Starstruck Presents Logo" 
-          style={{ width: '100px', height: '100px', marginRight: '20px', borderRadius: '50%', border: '3px solid #3b82f6' }} 
+          style={{ width: '100px', height: '100px', marginRight: '20px', borderRadius: '50%', border: '3px solid #3b82f6' }}
+          onError={(e) => {
+            // Fallback to a placeholder if external image fails to load
+            e.currentTarget.style.display = 'none';
+          }}
         />
         <div>
           <h2 style={{ fontSize: '1.5em', color: '#1f2937', marginBottom: '10px' }}>Organizer: Starstruck Presents</h2>

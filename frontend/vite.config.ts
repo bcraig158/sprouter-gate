@@ -27,9 +27,21 @@ export default defineConfig({
         },
       },
     },
+    // Ensure build doesn't fail on warnings
+    onwarn(warning, warn) {
+      // Ignore certain warnings that don't affect functionality
+      if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+        return;
+      }
+      warn(warning);
+    },
   },
   define: {
     // Ensure environment variables are available
     'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'axios', 'jwt-decode', 'date-fns', 'luxon'],
   },
 })
