@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:backend": "concurrently \"yarn dev\" \"cd ../backend && yarn dev\"",
-    "build": "tsc && vite build",
-    "build:production": "NODE_ENV=production tsc --noEmit && vite build --mode production",
+    "build": "vite build",
+    "build:production": "vite build --mode production",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "type-check": "tsc --noEmit"
