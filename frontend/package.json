@@ -19,7 +19,13 @@
     "axios": "^1.6.2",
     "jwt-decode": "^3.1.2",
     "date-fns": "^2.30.0",
-    "luxon": "^3.4.4"
+    "luxon": "^3.4.4",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0"
   },
   "devDependencies": {
     "@types/luxon": "^3.3.0",
@@ -27,15 +33,9 @@
     "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
-    "@vitejs/plugin-react": "^4.1.1",
-    "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.4",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6",
-    "typescript": "^5.2.2",
-    "vite": "^4.5.0"
+    "eslint-plugin-react-refresh": "^0.4.4"
   }
 }
