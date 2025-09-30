@@ -541,7 +541,7 @@ function App() {
             <li style={{ marginBottom: '8px' }}>Families are limited to <strong>2 tickets per night initially</strong> (Oct 13–19). Select one showtime per night.</li>
             <li style={{ marginBottom: '8px' }}>From Oct 20, reserve <strong>+4 more per night</strong> while supplies last (max 6; volunteers max 8).</li>
             <li style={{ marginBottom: '8px' }}>During checkout, enter your student's ID for verification. Duplicates beyond limits will be canceled.</li>
-            <li style={{ marginBottom: '8px' }}><strong>Volunteers:</strong> Reserve +2 (total 4 initial) in Row 3 using your access code (still from GA pool).</li>
+            <li style={{ marginBottom: '8px' }}><strong>Volunteers:</strong> Reserve +2 (total 4 initial) using your access code (still from GA pool).</li>
             <li style={{ marginBottom: '8px' }}>Refunds until 2 days before. Under 2 on lap free; age 2+ needs a ticket. Sales close 4:00 PM day-of.</li>
           </ul>
         </div>
