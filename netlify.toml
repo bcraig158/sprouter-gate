@@ -1,7 +1,7 @@
 [build]
   base = "frontend"
   command = "npm install --legacy-peer-deps && npm run build:production"
-  publish = "frontend/dist"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"

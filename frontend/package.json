@@ -29,7 +29,10 @@
     "terser": "5.24.0",
     "typescript": "5.2.2",
     "esbuild": "0.18.20",
-    "rollup": "3.29.5"
+    "rollup": "3.29.5",
+    "@babel/core": "7.23.6",
+    "@babel/preset-env": "7.23.6",
+    "@babel/preset-react": "7.23.3"
   },
   "devDependencies": {
     "@types/luxon": "3.3.0",
