@@ -26,6 +26,7 @@ export default defineConfig({
           router: ['react-router-dom'],
         },
       },
+      external: [],
     },
     // Ensure build doesn't fail on warnings
     onwarn(warning, warn) {
@@ -33,7 +34,14 @@ export default defineConfig({
       if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
         return;
       }
+      if (warning.code === 'UNUSED_EXTERNAL_IMPORT') {
+        return;
+      }
       warn(warning);
+    },
+    // Ensure all dependencies are bundled
+    commonjsOptions: {
+      include: [/node_modules/],
     },
   },
   define: {
