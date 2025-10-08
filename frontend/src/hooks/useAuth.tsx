@@ -32,13 +32,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       try {
-        const decoded = jwtDecode<{ householdId: string; studentId: string; exp: number }>(storedToken);
-        if (decoded.exp * 1000 > Date.now()) {
+        // Try to decode as JWT first, then fall back to simple base64
+        let decoded: { householdId: string; studentId: string; exp: number };
+        try {
+          decoded = jwtDecode<{ householdId: string; studentId: string; exp: number }>(storedToken);
+        } catch {
+          // Fall back to simple base64 decoding
+          decoded = JSON.parse(atob(storedToken));
+        }
+        
+        if (decoded.exp > Date.now()) {
           setToken(storedToken);
           setUser({
             householdId: decoded.householdId,
             studentId: decoded.studentId,
-            isVolunteer: false // Will be updated when we fetch user state
+            isVolunteer: false
           });
         } else {
           localStorage.removeItem('token');
@@ -52,19 +60,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (studentId: string): Promise<boolean> => {
     try {
-      const response = await api.post('/login', { studentId });
-      
-      if (response.data.success) {
-        const { token: newToken, householdId, isVolunteer } = response.data;
+      // Simple frontend-only authentication
+      // Accept any non-empty student ID
+      if (studentId && studentId.trim().length > 0) {
+        // Create a simple token for session management
+        const mockToken = btoa(JSON.stringify({
+          studentId: studentId.trim(),
+          householdId: `HH_${studentId.trim()}`,
+          exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        }));
         
-        setToken(newToken);
+        setToken(mockToken);
         setUser({
-          householdId,
-          studentId,
-          isVolunteer
+          householdId: `HH_${studentId.trim()}`,
+          studentId: studentId.trim(),
+          isVolunteer: false
         });
         
-        localStorage.setItem('token', newToken);
+        localStorage.setItem('token', mockToken);
         return true;
       }
       return false;
