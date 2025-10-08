@@ -49,10 +49,10 @@ export const getMockState = (householdId: string) => ({
 });
 
 export const getMockSprouterUrls = () => ({
-  'tue-530': 'https://proposal.xraypayment.com/embed/tue-530',
-  'tue-630': 'https://proposal.xraypayment.com/embed/tue-630',
-  'thu-530': 'https://proposal.xraypayment.com/embed/thu-530',
-  'thu-630': 'https://proposal.xraypayment.com/embed/thu-630',
+  'tue-530': 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTUzNzg0ZTdkN2JiOTcyNTYyNTExZDN5eWVrMzUxcw==',
+  'tue-630': 'https://events.sprouter.online/events/MTAvMjhALTY6MzBALXBtQC18QC1zb0AteW91QC10aGlua0AteW91QC1jYW5ALWRhbmNlIUAtYmQ5MDIxYmFhMjc4MTVlYWY0MDk0N3l5ZWszNTZz',
+  'thu-530': 'https://events.sprouter.online/events/MTAvMzBALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALWI5OGM1ZmU1NTk0YTAzY2YxNzA3Yzh5eWVrMzU3cw==',
+  'thu-630': 'https://events.sprouter.online/events/MTAvMzBALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTY1MTFhYjI4MjNlMjdkZGU5Mzc3ZTB5eWVrMzU4cw==',
 });
 
 export const getMockPurchases = () => [
@@ -65,6 +65,6 @@ export const getMockPurchases = () => [
     ticketsRequested: 1,
     status: 'pending' as const,
     purchaseDate: new Date().toISOString(),
-    sprouterUrl: 'https://proposal.xraypayment.com/embed/tue-530'
+    sprouterUrl: 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTUzNzg0ZTdkN2JiOTcyNTYyNTExZDN5eWVrMzUxcw=='
   }
 ];
