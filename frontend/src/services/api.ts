@@ -2,11 +2,11 @@ import axios from 'axios';
 
 // Environment-aware API configuration
 const getApiBaseUrl = () => {
-  // In production, use the production API
+  // In production (Netlify), no backend API needed - app works standalone
   if (import.meta.env.PROD) {
-    return 'https://sproutersecure.com/api';
+    return '/api'; // This will be handled by the frontend logic
   }
-  // In development, use local backend
+  // In development, use the proxy or direct backend URL
   return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 };
 
