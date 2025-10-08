@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getMockPurchases } from '../../utils/mockData';
 
 interface PurchaseStatus {
   id: string;
@@ -26,8 +27,15 @@ export default function StatusPage() {
 
   const fetchPurchaseStatus = async () => {
     try {
-      const response = await api.get('/purchases');
-      setPurchases(response.data);
+      if (import.meta.env.PROD) {
+        // Production mode - use mock data
+        const mockPurchases = getMockPurchases();
+        setPurchases(mockPurchases);
+      } else {
+        // Development mode - use API
+        const response = await api.get('/purchases');
+        setPurchases(response.data);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load purchase status');
     } finally {

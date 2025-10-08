@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import { formatDateTime, getTimeUntilEvent } from '../../utils/dateUtils';
+import { getMockState } from '../../utils/mockData';
 
 interface Event {
   key: string;
@@ -59,8 +60,15 @@ export default function SelectPage() {
 
   const fetchState = async () => {
     try {
-      const response = await api.get('/state');
-      setState(response.data);
+      if (import.meta.env.PROD) {
+        // Production mode - use mock data
+        const mockState = getMockState(user?.householdId || 'HH_123');
+        setState(mockState);
+      } else {
+        // Development mode - use API
+        const response = await api.get('/state');
+        setState(response.data);
+      }
     } catch (err) {
       setError('Failed to load your current state');
     } finally {
@@ -70,17 +78,23 @@ export default function SelectPage() {
 
   const handleSelectSlot = async (night: 'tue' | 'thu', eventKey: string) => {
     try {
-      await api.post('/select-slot', {
-        night,
-        eventKey,
-        ticketsRequested
-      });
-      
-      // Refresh state
-      await fetchState();
-      
-      // Navigate to purchase page
-      navigate(`/purchase/${eventKey}`);
+      if (import.meta.env.PROD) {
+        // Production mode - skip API call and go directly to purchase
+        navigate(`/purchase/${eventKey}`);
+      } else {
+        // Development mode - use API
+        await api.post('/select-slot', {
+          night,
+          eventKey,
+          ticketsRequested
+        });
+        
+        // Refresh state
+        await fetchState();
+        
+        // Navigate to purchase page
+        navigate(`/purchase/${eventKey}`);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to select slot');
     }
