@@ -94,5 +94,6 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
-# UX/UI development files (not for deployment)
+# Development files (not for deployment)
 UX:UI updates/
+Documentation/
