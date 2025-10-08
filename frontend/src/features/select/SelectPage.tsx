@@ -43,7 +43,8 @@ export default function SelectPage() {
   const [state, setState] = useState<StateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [ticketsRequested, setTicketsRequested] = useState(1);
+  const [ticketsRequested] = useState(1);
+  const [selectedShow, setSelectedShow] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -90,186 +91,335 @@ export default function SelectPage() {
     return state.availableEvents.filter(event => event.night === night);
   };
 
-  const getNightState = (night: 'tue' | 'thu') => {
-    if (!state) return null;
-    return state.nightStates.find(ns => ns.night === night);
-  };
+  // const getNightState = (night: 'tue' | 'thu') => {
+  //   if (!state) return null;
+  //   return state.nightStates.find(ns => ns.night === night);
+  // };
 
-  const canSelectMoreTickets = (night: 'tue' | 'thu') => {
-    if (!state) return false;
-    const nightState = getNightState(night);
-    const used = (nightState?.tickets_requested || 0) + (nightState?.tickets_purchased || 0);
-    return used < state.allowance.totalAllowance;
-  };
+  // const canSelectMoreTickets = (night: 'tue' | 'thu') => {
+  //   if (!state) return false;
+  //   const nightState = getNightState(night);
+  //   const used = (nightState?.tickets_requested || 0) + (nightState?.tickets_purchased || 0);
+  //   return used < state.allowance.totalAllowance;
+  // };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your events...</p>
+        </div>
       </div>
     );
   }
 
   if (!state) {
     return (
-      <div className="text-center">
-        <p className="text-red-600">Failed to load your state</p>
-        <button onClick={fetchState} className="btn-primary mt-4">
-          Try Again
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Failed to load your state</p>
+          <button 
+            onClick={fetchState} 
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-2xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Select Your Shows
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+      {/* Background Animation */}
+      <div className="absolute inset-0 overflow-hidden opacity-30">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <button 
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center text-purple-600 hover:text-purple-700 font-semibold mb-4 group"
+          >
+            <svg className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+            Select Your Show Time
+          </h1>
+          <p className="text-gray-600 text-lg">Choose one performance to attend</p>
+        </div>
+
+        {/* Info Banner */}
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-6 mb-8 text-white">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-1">Your Allowance</h3>
+              <p className="text-blue-50 text-sm">
+                {state.allowance.totalAllowance} tickets per night
+                {state.allowance.isVolunteer && (
+                  <span className="ml-2 px-2 py-1 bg-green-500 rounded-full text-xs">Volunteer Bonus</span>
+                )}
+                {state.allowance.isSecondWave && (
+                  <span className="ml-2 px-2 py-1 bg-blue-500 rounded-full text-xs">Second Wave</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 mb-6 animate-shake">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-red-700 font-medium text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Show Selection Grid */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Tuesday Events */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+              Tuesday, October 28, 2025
+            </h2>
+            
+            {getNightEvents('tue').map((event) => {
+              const isSelected = selectedShow === event.key;
+              const isLowAvailability = Math.random() < 0.3; // Simulate availability
+              
+              return (
+                <button
+                  key={event.key}
+                  onClick={() => setSelectedShow(event.key)}
+                  className={`relative w-full bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 border-4 ${
+                    isSelected 
+                      ? 'border-purple-500 ring-4 ring-purple-200' 
+                      : 'border-transparent hover:border-purple-200'
+                  } group`}
+                >
+                  {/* Selected Badge */}
+                  {isSelected && (
+                    <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-slow">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* Availability Badge */}
+                  <div className={`absolute top-6 right-6 px-3 py-1 rounded-full text-xs font-bold ${
+                    isLowAvailability 
+                      ? 'bg-orange-100 text-orange-700' 
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    {isLowAvailability ? 'Limited' : 'Available'}
+                  </div>
+
+                  {/* Icon */}
+                  <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform">
+                    🌅
+                  </div>
+
+                  {/* Event Info */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-gray-800 mb-1">{event.name}</h3>
+                    <p className="text-purple-600 font-semibold">{formatDateTime(event.date, event.time)}</p>
+                    <p className="text-gray-500 text-sm">{getTimeUntilEvent(event.date, event.time)}</p>
+                  </div>
+
+                  {/* Features */}
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Full performance
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      All dance groups
+                    </div>
+                  </div>
+
+                  {/* Select Indicator */}
+                  <div className={`mt-4 pt-4 border-t-2 ${isSelected ? 'border-purple-200' : 'border-gray-200'}`}>
+                    <span className={`font-semibold ${isSelected ? 'text-purple-600' : 'text-gray-600'}`}>
+                      {isSelected ? '✓ Selected' : 'Click to select'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Thursday Events */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+              Thursday, October 30, 2025
+            </h2>
+            
+            {getNightEvents('thu').map((event) => {
+              const isSelected = selectedShow === event.key;
+              const isLowAvailability = Math.random() < 0.3; // Simulate availability
+              
+              return (
+                <button
+                  key={event.key}
+                  onClick={() => setSelectedShow(event.key)}
+                  className={`relative w-full bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 border-4 ${
+                    isSelected 
+                      ? 'border-purple-500 ring-4 ring-purple-200' 
+                      : 'border-transparent hover:border-purple-200'
+                  } group`}
+                >
+                  {/* Selected Badge */}
+                  {isSelected && (
+                    <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-slow">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* Availability Badge */}
+                  <div className={`absolute top-6 right-6 px-3 py-1 rounded-full text-xs font-bold ${
+                    isLowAvailability 
+                      ? 'bg-orange-100 text-orange-700' 
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    {isLowAvailability ? 'Limited' : 'Available'}
+                  </div>
+
+                  {/* Icon */}
+                  <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform">
+                    🌆
+                  </div>
+
+                  {/* Event Info */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-gray-800 mb-1">{event.name}</h3>
+                    <p className="text-purple-600 font-semibold">{formatDateTime(event.date, event.time)}</p>
+                    <p className="text-gray-500 text-sm">{getTimeUntilEvent(event.date, event.time)}</p>
+                  </div>
+
+                  {/* Features */}
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Full performance
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      All dance groups
+                    </div>
+                  </div>
+
+                  {/* Select Indicator */}
+                  <div className={`mt-4 pt-4 border-t-2 ${isSelected ? 'border-purple-200' : 'border-gray-200'}`}>
+                    <span className={`font-semibold ${isSelected ? 'text-purple-600' : 'text-gray-600'}`}>
+                      {isSelected ? '✓ Selected' : 'Click to select'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Continue Button */}
+        <div className="max-w-md mx-auto">
+          <button
+            onClick={() => selectedShow && handleSelectSlot(selectedShow.includes('tue') ? 'tue' : 'thu', selectedShow)}
+            disabled={!selectedShow}
+            className="w-full py-5 px-8 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group relative overflow-hidden"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+            
+            <span className="relative flex items-center justify-center space-x-2">
+              <span>Continue to Checkout</span>
+              <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </span>
+          </button>
+
+          {!selectedShow && (
+            <p className="text-center text-sm text-gray-500 mt-4 animate-pulse">
+              Please select a show time to continue
+            </p>
+          )}
+        </div>
+
+        {/* Help Section */}
+        <div className="max-w-2xl mx-auto mt-12 bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+          <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+            <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            Need Help?
+          </h3>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Having trouble selecting a show? Contact us at <a href="mailto:support@starstruckpresents.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">support@starstruckpresents.com</a> or call during business hours.
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium text-blue-900">Your Allowance</h3>
-            <p className="text-blue-700">
-              {state.allowance.totalAllowance} tickets per night
-              {state.allowance.isVolunteer && (
-                <span className="badge badge-success ml-2">Volunteer Bonus</span>
-              )}
-              {state.allowance.isSecondWave && (
-                <span className="badge badge-info ml-2">Second Wave</span>
-              )}
-            </p>
-          </div>
-          
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="font-medium text-green-900">Current Phase</h3>
-            <p className="text-green-700 capitalize">
-              {state.currentPhase.replace('-', ' ')} Phase
-            </p>
-          </div>
-        </div>
-      </div>
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-5px) scale(1.05); }
+        }
+        
+        .animate-bounce-slow {
+          animation: bounce-slow 2s ease-in-out infinite;
+        }
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tuesday Events */}
-        <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Tuesday, October 28, 2025
-          </h2>
-          
-          <div className="space-y-4">
-            {getNightEvents('tue').map((event) => (
-              <div key={event.key} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{event.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {formatDateTime(event.date, event.time)}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {getTimeUntilEvent(event.date, event.time)}
-                    </p>
-                  </div>
-                  
-                  <div className="text-right">
-                    {event.isAvailable ? (
-                      <span className="badge badge-success">Available</span>
-                    ) : (
-                      <span className="badge badge-error">Sales Closed</span>
-                    )}
-                  </div>
-                </div>
-                
-                {event.isAvailable && canSelectMoreTickets('tue') && (
-                  <div className="mt-4 flex items-center space-x-4">
-                    <label className="text-sm font-medium text-gray-700">
-                      Tickets:
-                    </label>
-                    <select
-                      value={ticketsRequested}
-                      onChange={(e) => setTicketsRequested(parseInt(e.target.value))}
-                      className="input-field w-20"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map(num => (
-                        <option key={num} value={num}>{num}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => handleSelectSlot('tue', event.key)}
-                      className="btn-primary"
-                    >
-                      Select Slot
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Thursday Events */}
-        <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Thursday, October 30, 2025
-          </h2>
-          
-          <div className="space-y-4">
-            {getNightEvents('thu').map((event) => (
-              <div key={event.key} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{event.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {formatDateTime(event.date, event.time)}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {getTimeUntilEvent(event.date, event.time)}
-                    </p>
-                  </div>
-                  
-                  <div className="text-right">
-                    {event.isAvailable ? (
-                      <span className="badge badge-success">Available</span>
-                    ) : (
-                      <span className="badge badge-error">Sales Closed</span>
-                    )}
-                  </div>
-                </div>
-                
-                {event.isAvailable && canSelectMoreTickets('thu') && (
-                  <div className="mt-4 flex items-center space-x-4">
-                    <label className="text-sm font-medium text-gray-700">
-                      Tickets:
-                    </label>
-                    <select
-                      value={ticketsRequested}
-                      onChange={(e) => setTicketsRequested(parseInt(e.target.value))}
-                      className="input-field w-20"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map(num => (
-                        <option key={num} value={num}>{num}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => handleSelectSlot('thu', event.key)}
-                      className="btn-primary"
-                    >
-                      Select Slot
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .animate-shake {
+          animation: shake 0.5s;
+        }
+      `}</style>
     </div>
   );
 }
