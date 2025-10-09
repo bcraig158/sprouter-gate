@@ -116,63 +116,39 @@ export default function PurchasePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Detailed header with comprehensive ticket information */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 px-4 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
-            <div className="text-center">
-              <p className="font-semibold text-blue-800 mb-1">🎫 Ticket Limit</p>
-              <p className="text-blue-700">Max 2 tickets per family per night</p>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-blue-800 mb-1">💰 Ticket Types</p>
-              <p className="text-blue-700">Reserved ($25) or General Admission (FREE)</p>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-blue-800 mb-1">📱 Digital Tickets</p>
-              <p className="text-blue-700">Show on phone at door for entry</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Maximized Sprouter Embed */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 w-full">
-          <iframe
-            src={purchaseData.sprouterUrl}
-            className="w-full h-full min-h-[calc(100vh-80px)]"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
-            loading="lazy"
-            allowFullScreen
-            title="Sprouter Checkout"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      </div>
-
-      {/* Minimal footer with essential actions */}
-      <div className="bg-white border-t border-gray-200 px-4 py-3">
+    <div className="h-screen flex flex-col">
+      {/* Minimal header with navigation only */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <button
             onClick={() => navigate('/select')}
-            className="text-sm text-gray-600 hover:text-gray-800 underline"
+            className="text-sm text-gray-600 hover:text-gray-800 underline flex items-center"
           >
             ← Back to Selection
           </button>
           <div className="text-xs text-gray-500">
             Intent: {purchaseData.intentId}
           </div>
-          <a
-            href={purchaseData.sprouterUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary-600 hover:text-primary-700 underline"
+          <button
+            onClick={() => navigate('/logout')}
+            className="text-sm text-gray-600 hover:text-gray-800 underline"
           >
-            Open in new tab
-          </a>
+            Logout
+          </button>
         </div>
+      </div>
+
+      {/* Full-screen Sprouter Embed */}
+      <div className="flex-1 w-full">
+        <iframe
+          src={purchaseData.sprouterUrl}
+          className="w-full h-full"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
+          loading="lazy"
+          allowFullScreen
+          title="Sprouter Checkout"
+          referrerPolicy="no-referrer"
+        />
       </div>
     </div>
   );
