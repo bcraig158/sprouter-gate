@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { formatDateTime } from '../../utils/dateUtils';
 import { getMockSprouterUrls } from '../../utils/mockData';
 
 interface PurchaseResponse {
@@ -117,95 +116,63 @@ export default function PurchasePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Complete Your Purchase
-        </h1>
-        
-        <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h3 className="font-medium text-blue-900 mb-2">Event Details</h3>
-          <p className="text-blue-700">
-            <strong>{currentEvent.name}</strong><br />
-            {formatDateTime(currentEvent.date, currentEvent.time)}
-          </p>
-        </div>
-
-        <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+    <div className="min-h-screen flex flex-col">
+      {/* Detailed header with comprehensive ticket information */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 px-4 py-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="text-center">
+              <p className="font-semibold text-blue-800 mb-1">🎫 Ticket Limit</p>
+              <p className="text-blue-700">Max 2 tickets per family per night</p>
             </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Important: Complete your purchase in the Sprouter checkout below
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>Your purchase intent has been created. Please complete the checkout process in the embedded form below to secure your tickets.</p>
-              </div>
+            <div className="text-center">
+              <p className="font-semibold text-blue-800 mb-1">💰 Ticket Types</p>
+              <p className="text-blue-700">Reserved ($25) or General Admission (FREE)</p>
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-blue-800 mb-1">📱 Digital Tickets</p>
+              <p className="text-blue-700">Show on phone at door for entry</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sprouter Embed */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Sprouter Checkout
-        </h2>
-        
-        <div className="bg-white p-4 rounded-lg border">
-          <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Complete Your Purchase
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Use the secure checkout below to complete your ticket purchase.
-            </p>
-          </div>
-          
-          {/* Sprouter Embed */}
-              <div className="border rounded-lg overflow-hidden">
-                <iframe
-                  src={purchaseData.sprouterUrl}
-                  className="w-full h-[700px]"
-                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
-                  loading="lazy"
-                  allowFullScreen
-                  title="Sprouter Checkout"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-          
-          <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
-            <span>Intent ID: {purchaseData.intentId}</span>
-            <a
-              href={purchaseData.sprouterUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary-600 hover:text-primary-700 underline"
-            >
-              Open in new tab
-            </a>
-          </div>
+      {/* Maximized Sprouter Embed */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 w-full">
+          <iframe
+            src={purchaseData.sprouterUrl}
+            className="w-full h-full min-h-[calc(100vh-80px)]"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
+            loading="lazy"
+            allowFullScreen
+            title="Sprouter Checkout"
+            referrerPolicy="no-referrer"
+          />
         </div>
       </div>
 
-      <div className="flex justify-between">
-        <button
-          onClick={() => navigate('/select')}
-          className="btn-secondary"
-        >
-          Back to Selection
-        </button>
-        <button
-          onClick={() => navigate('/status')}
-          className="btn-primary"
-        >
-          View Purchase Status
-        </button>
+      {/* Minimal footer with essential actions */}
+      <div className="bg-white border-t border-gray-200 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <button
+            onClick={() => navigate('/select')}
+            className="text-sm text-gray-600 hover:text-gray-800 underline"
+          >
+            ← Back to Selection
+          </button>
+          <div className="text-xs text-gray-500">
+            Intent: {purchaseData.intentId}
+          </div>
+          <a
+            href={purchaseData.sprouterUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary-600 hover:text-primary-700 underline"
+          >
+            Open in new tab
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -76,7 +76,23 @@ export default function LoginPage() {
           {/* Login Card */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back!</h2>
-            <p className="text-gray-600 mb-6">Enter your Student ID to get started</p>
+            <p className="text-gray-600 mb-4">Enter your Student ID to get started</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h3 className="font-semibold text-blue-800 text-sm mb-1">Important Ticket Information</h3>
+                  <ul className="text-blue-700 text-xs space-y-1">
+                    <li>• Families limited to 2 tickets per night</li>
+                    <li>• Choose only ONE show time (5:30 PM OR 6:30 PM)</li>
+                    <li>• Additional tickets available 1 week prior</li>
+                    <li>• Volunteers get extra 2 tickets with access code</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Input Field */}
