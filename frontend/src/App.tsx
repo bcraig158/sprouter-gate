@@ -27,9 +27,7 @@ function App() {
           
           <Route path="/purchase/:eventKey" element={
             <ProtectedRoute>
-              <Layout showBackButton maxWidth="lg">
-                <PurchasePage />
-              </Layout>
+              <PurchasePage />
             </ProtectedRoute>
           } />
           
