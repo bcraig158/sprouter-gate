@@ -84,7 +84,14 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Footer (optional) */}
       <footer className="relative z-10 text-center py-8 px-4">
         <p className="text-gray-600 text-sm">
-          Powered by <span className="font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Sprouter</span>
+          Powered by <a 
+            href="https://sprouter.online/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+          >
+            Sprouter
+          </a>
         </p>
       </footer>
 
