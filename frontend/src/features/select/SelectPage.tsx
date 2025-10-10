@@ -310,7 +310,7 @@ export default function SelectPage() {
             
             {getNightEvents('tue').map((event) => {
               const isSelected = selectedShow === event.key;
-              const isLowAvailability = Math.random() < 0.3; // Simulate availability
+              const isLowAvailability = false; // All events are available
               
               return (
                 <button
@@ -425,7 +425,7 @@ export default function SelectPage() {
             
             {getNightEvents('thu').map((event) => {
               const isSelected = selectedShow === event.key;
-              const isLowAvailability = Math.random() < 0.3; // Simulate availability
+              const isLowAvailability = false; // All events are available
               
               return (
                 <button
