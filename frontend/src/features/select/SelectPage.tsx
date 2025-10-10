@@ -219,8 +219,7 @@ export default function SelectPage() {
                 Volunteer Benefits
               </h3>
               <p className="text-sm text-gray-600">
-                Volunteers receive up to an additional 2 FREE tickets! 
-                <span className="text-purple-600 font-medium"> Sign up to get your access code.</span>
+                Volunteers receive up to an additional 2 FREE tickets! Select Volunteer ticket at checkout and claim your 2 additional tickets.
               </p>
             </div>
           </div>
