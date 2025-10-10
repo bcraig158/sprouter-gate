@@ -532,7 +532,7 @@ export default function SelectPage() {
             Need Help?
           </h3>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Having trouble selecting a show? Contact us at <a href="mailto:support@starstruckpresents.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">support@starstruckpresents.com</a> or call during business hours.
+            Having trouble selecting a show? Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call during business hours.
           </p>
         </div>
       </div>

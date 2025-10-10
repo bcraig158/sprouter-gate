@@ -126,8 +126,8 @@ export default function PurchasePage() {
           >
             ← Back to Selection
           </button>
-          <div className="text-xs text-gray-500 font-mono">
-            Intent: {purchaseData.intentId}
+          <div className="text-sm text-gray-700 font-semibold">
+            Maidu Elementary School
           </div>
           <button
             onClick={() => navigate('/logout')}
