@@ -85,9 +85,9 @@ export default function LoginPage() {
 
         {/* Main Card */}
         <div className="w-full max-w-4xl">
-          {/* Comprehensive Event Information Panel */}
+          {/* Event Header */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 mb-8 border border-white/20">
-            <div className="text-center mb-8">
+            <div className="text-center">
               <h2 className="text-3xl font-bold text-gray-800 mb-2">STARSTRUCK PRESENTS: SO YOU THINK YOU CAN DANCE! 🎭</h2>
               <div className="flex items-center justify-center space-x-2 text-gray-600">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -95,95 +95,6 @@ export default function LoginPage() {
                 </svg>
                 <span className="font-medium">Maidu Elementary School</span>
               </div>
-              <p className="text-gray-600 text-sm">1950 Johnson Ranch Drive, Roseville, CA 95661</p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Show Dates & Times */}
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-800 border-b-2 border-purple-200 pb-2">SHOW DATES & TIMES</h3>
-                <div className="space-y-3">
-                  <div className="bg-purple-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-purple-800 mb-2">Monday, October 28, 2025</h4>
-                    <div className="space-y-1 text-sm text-purple-700">
-                      <p>• 5:30 PM Show</p>
-                      <p>• 6:30 PM Show</p>
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-purple-800 mb-2">Wednesday, October 30, 2025</h4>
-                    <div className="space-y-1 text-sm text-purple-700">
-                      <p>• 5:30 PM Show</p>
-                      <p>• 6:30 PM Show</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ticket Rules & Options */}
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2">TICKET RULES</h3>
-                <div className="space-y-3">
-                  <div className="bg-green-50 rounded-xl p-4">
-                    <ul className="space-y-2 text-sm text-green-700">
-                      <li className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <span>Up to 2 tickets per family per night</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <span>Choose ONE show time per night (either 5:30 PM OR 6:30 PM)</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <span>You can purchase tickets for both October 28 AND October 30</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <span>Children 2 and under on lap do not need tickets</span>
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                    <h4 className="font-semibold text-yellow-800 mb-2">ADDITIONAL TICKETS</h4>
-                    <p className="text-sm text-yellow-700">Starting October 20th, up to 4 additional tickets will be available per night while supplies last (first come, first served)</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Ticket Options */}
-            <div className="mt-8">
-              <h3 className="text-xl font-bold text-gray-800 border-b-2 border-blue-200 pb-2 mb-4">TICKET OPTIONS</h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-2xl">🎟️</span>
-                    <h4 className="font-semibold text-blue-800">General Admission - FREE</h4>
-                  </div>
-                  <p className="text-sm text-blue-700">First come, first served seating (Row 3+)</p>
-                </div>
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-2xl">🎟️</span>
-                    <h4 className="font-semibold text-purple-800">Reserved Seating - $25 per ticket</h4>
-                  </div>
-                  <p className="text-sm text-purple-700">Guaranteed seats in the first 2 rows</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 font-medium">Select your show time below to continue to checkout.</p>
             </div>
           </div>
 

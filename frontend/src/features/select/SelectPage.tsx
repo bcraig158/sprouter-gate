@@ -171,82 +171,71 @@ export default function SelectPage() {
           <p className="text-gray-600 text-lg">Choose one performance to attend</p>
         </div>
 
-        {/* Consolidated Information Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Starstruck Presents: So You Think You Can Dance!</h2>
-            <p className="text-gray-600">📍 Maidu Elementary School, 1950 Johnson Ranch Drive, Roseville, CA 95661</p>
+        {/* Single Information Container */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
+          {/* Container Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Starstruck Presents: So You Think You Can Dance!</h2>
+            <p className="text-gray-600 text-base flex items-center justify-center">
+              <span className="text-red-500 mr-2">📍</span>
+              Maidu Elementary School, 1950 Johnson Ranch Drive, Roseville, CA 95661
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Ticket Rules */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
+          {/* Three Column Layout */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Column 1: Ticket Rules */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                 <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
                 Ticket Rules
               </h3>
-              <ul className="text-sm text-gray-600 space-y-1">
+              <ul className="text-sm text-gray-600 space-y-2">
                 <li>• Up to 2 tickets per family per night</li>
-                <li>• Choose ONE show time only</li>
+                <li>• Choose ONE show time per night</li>
                 <li>• Children 2 & under free (lap seating)</li>
-                <li>• 4 extra tickets released 1 week prior</li>
+                <li>• Additional tickets available starting October 20th</li>
               </ul>
             </div>
 
-            {/* Ticket Options */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
+            {/* Column 2: Ticket Options */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                 <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                 Ticket Options
               </h3>
               <div className="text-sm text-gray-600 space-y-1">
-                <div className="flex justify-between">
-                  <span>General Admission:</span>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">General Admission:</span>
                   <span className="font-semibold text-green-600">FREE</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Preferred Seating:</span>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Reserved Seating:</span>
                   <span className="font-semibold text-purple-600">$25</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Preferred seating in first 2 rows</p>
+                <p className="text-xs text-gray-500 mt-2">Reserved seating in first 2 rows</p>
               </div>
             </div>
 
-            {/* Volunteer Info */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                Volunteer Benefits
+            {/* Column 3: Important Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                Important Information
               </h3>
-              <p className="text-sm text-gray-600">
-                Volunteers receive up to an additional 2 FREE tickets! Select Volunteer ticket at checkout and claim your 2 additional tickets.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Your Allowance Banner */}
-        <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-2xl shadow-xl p-6 mb-8 text-white">
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-1">Your Ticket Allowance</h3>
-              <p className="text-green-50 text-sm mb-2">
-                {state.allowance.totalAllowance} tickets per night
-                {state.allowance.isVolunteer && (
-                  <span className="ml-2 px-2 py-1 bg-yellow-500 rounded-full text-xs">Volunteer Bonus</span>
-                )}
-                {state.allowance.isSecondWave && (
-                  <span className="ml-2 px-2 py-1 bg-blue-500 rounded-full text-xs">Second Wave</span>
-                )}
-              </p>
-              <p className="text-green-100 text-xs">
-                Volunteers receive an additional 2 tickets with access code. Additional tickets available starting October 20th.
-              </p>
+              <div className="text-sm text-gray-600 space-y-3">
+                <p>At checkout, you can select:</p>
+                <ul className="space-y-1">
+                  <li>• 2 General Admission tickets, OR</li>
+                  <li>• 2 Reserved Seating tickets</li>
+                </ul>
+                <div className="bg-red-50 border-l-4 border-red-400 p-3 rounded">
+                  <p className="text-sm text-red-800">
+                    <span className="text-red-500 mr-1">⚠️</span>
+                    Purchases exceeding the 2-ticket limit will be automatically canceled and you will be notified.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

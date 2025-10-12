@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <title>Loading...</title>
     <!-- Dynamic Favicon Loading -->
     <script>
       (function() {
@@ -58,12 +59,8 @@
         android512.href = '/' + prefix + 'android-chrome-512x512.png';
         document.head.appendChild(android512);
         
-        // Update page title based on domain
-        if (isMaiduSite) {
-          document.title = 'Maidu Elementary - Dance Show Tickets';
-        } else {
-          document.title = 'Sprouter Events - Access Control';
-        }
+        // Set dynamic title
+        document.title = isMaiduSite ? "Maidu Elementary - Dance Show Tickets" : "Sprouter Events - Access Control";
         
         // Create dynamic manifest
         const manifest = {

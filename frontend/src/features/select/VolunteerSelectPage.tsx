@@ -216,8 +216,8 @@ export default function VolunteerSelectPage() {
             <p className="text-gray-600">📍 Maidu Elementary School, 1950 Johnson Ranch Drive, Roseville, CA 95661</p>
           </div>
           
-          <div className="max-w-4xl mx-auto">
-            <div className="space-y-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8">
               {/* Show Selection Rules */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-gray-800 flex items-center">
@@ -231,20 +231,31 @@ export default function VolunteerSelectPage() {
                 </div>
               </div>
 
-              {/* Ticket Options */}
+              {/* Ticket Limitations */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-gray-800 flex items-center">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  ✓ Your ticket options (per show you attend):
+                  ✓ Your ticket limits (per show you attend):
                 </h3>
-                <div className="text-sm text-gray-600 space-y-2">
+                <div className="text-sm text-gray-600 space-y-3">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="font-semibold text-yellow-800 mb-2">⚠️ Important Limits:</p>
+                    <ul className="space-y-1 text-xs">
+                      <li>• Maximum 2 Reserved Seats per show</li>
+                      <li>• Maximum 4 General Admission tickets per show</li>
+                      <li>• Reserved seats: $25 each (first 2 rows)</li>
+                      <li>• General Admission: FREE</li>
+                    </ul>
+                  </div>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p><strong>Option 1:</strong> 4 General Admission tickets - <span className="text-green-600 font-semibold">FREE</span></p>
+                    <p className="font-semibold text-green-800 mb-1">Examples of valid combinations:</p>
+                    <ul className="space-y-1 text-xs">
+                      <li>• 4 GA tickets (FREE)</li>
+                      <li>• 2 Reserved + 2 GA ($50 total)</li>
+                      <li>• 1 Reserved + 3 GA ($25 total)</li>
+                      <li>• 2 Reserved + 1 GA ($50 total)</li>
+                    </ul>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p><strong>Option 2:</strong> 2 Reserved Seats ($50 total) + 2 General Admission (<span className="text-green-600 font-semibold">FREE</span>)</p>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Reserved seats are in the first 2 rows</p>
                 </div>
               </div>
             </div>
@@ -622,28 +633,6 @@ export default function VolunteerSelectPage() {
               </div>
             </div>
 
-            {/* LOGIN & ACCESS Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-orange-800 border-b-2 border-orange-200 pb-2">LOGIN & ACCESS</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: How do I access my volunteer tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Check your email for your 6-digit volunteer code, go to the volunteer portal, enter your code and email address, then select your show(s) and tickets.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What if I forgot my volunteer code?</p>
-                  <p className="text-gray-600 text-sm">A: Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a> and we'll resend it.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can someone else use my volunteer code?</p>
-                  <p className="text-gray-600 text-sm">A: No. Each code is unique to one volunteer and can only be used with the registered email address.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: My code isn't working - what should I do?</p>
-                  <p className="text-gray-600 text-sm">A: Make sure you're entering all 6 digits correctly and using the email address you registered with. If issues persist, contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a>.</p>
-                </div>
-              </div>
-            </div>
 
             {/* CHECKOUT & PAYMENT Section */}
             <div className="space-y-4">
