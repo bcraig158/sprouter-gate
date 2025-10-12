@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const isHomePage = location.pathname === '/' || location.pathname === '/login';
 
   const maxWidthClasses = {
@@ -64,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({
               {/* Optional: User menu or logout button */}
               <button
                 onClick={() => {
-                  localStorage.clear();
+                  logout();
                   navigate('/login');
                 }}
                 className="text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors"

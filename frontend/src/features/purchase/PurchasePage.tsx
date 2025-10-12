@@ -16,7 +16,7 @@ interface PurchaseResponse {
 export default function PurchasePage() {
   const { eventKey } = useParams<{ eventKey: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [purchaseData, setPurchaseData] = useState<PurchaseResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -153,7 +153,10 @@ export default function PurchasePage() {
             Maidu Elementary School
           </div>
           <button
-            onClick={() => navigate('/logout')}
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
             className="text-sm text-gray-600 hover:text-gray-800 underline font-medium"
           >
             Logout

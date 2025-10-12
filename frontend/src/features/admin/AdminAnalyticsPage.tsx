@@ -130,11 +130,14 @@ export default function AdminAnalyticsPage() {
   // Check if user is authenticated and is admin
   useEffect(() => {
     if (!authLoading) {
+      console.log('Admin Analytics - User check:', { user, isAdmin: user?.isAdmin });
       if (!user) {
+        console.log('Admin Analytics - No user, redirecting to login');
         navigate('/login');
         return;
       }
       if (!user.isAdmin) {
+        console.log('Admin Analytics - User is not admin, redirecting to select');
         navigate('/select');
         return;
       }
@@ -149,15 +152,19 @@ export default function AdminAnalyticsPage() {
 
   const fetchAnalyticsData = async () => {
     try {
+      console.log('Admin Analytics - Fetching data for timeframe:', selectedTimeframe);
       setIsLoading(true);
       
       // Fetch enhanced analytics data from backend
       const response = await fetch(`/api/analytics?timeframe=${selectedTimeframe}`);
+      console.log('Admin Analytics - Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics data');
+        throw new Error(`Failed to fetch analytics data: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('Admin Analytics - Data received:', data);
       setAnalyticsData(data);
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);

@@ -1135,12 +1135,76 @@ exports.handler = async (event, context) => {
           return sum + cost;
         }, 0);
         
+        // Calculate active users (logged in within last 24 hours)
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        
+        const activeUsers = analyticsData.userLogins.filter(login => {
+          const loginTime = new Date(login.login_timestamp);
+          return loginTime > twentyFourHoursAgo;
+        });
+        
+        const activeStudentUsers = activeUsers.filter(u => u.user_type === 'student').length;
+        const activeVolunteerUsers = activeUsers.filter(u => u.user_type === 'volunteer').length;
+        
+        // Create active users list
+        const activeUsersList = activeUsers.map(login => ({
+          user_id: login.user_id,
+          user_type: login.user_type,
+          identifier: login.identifier,
+          login_timestamp: login.login_timestamp,
+          time_ago: Math.floor((now - new Date(login.login_timestamp)) / 1000 / 60) // minutes ago
+        }));
+        
+        // Get limit violations (from fraud detection)
+        const limitViolations = analyticsData.userLogins.filter(login => {
+          // This would be populated by the fraud detection system
+          // For now, return empty array - will be populated by actual violations
+          return false;
+        });
+        
         // Get domain breakdown
         const domainBreakdown = analyticsData.userLogins.reduce((acc, login) => {
           const domain = login.domain || 'unknown';
           acc[domain] = (acc[domain] || 0) + 1;
           return acc;
         }, {});
+        
+        // Get show breakdown for the 4 events
+        const showBreakdown = {
+          'tue-530': {
+            selections: analyticsData.showSelections.filter(s => s.show_id === 'tue-530').length,
+            purchases: analyticsData.purchases.filter(p => p.show_id === 'tue-530').length,
+            revenue: analyticsData.purchases.filter(p => p.show_id === 'tue-530').reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            conversion_rate: 0
+          },
+          'tue-630': {
+            selections: analyticsData.showSelections.filter(s => s.show_id === 'tue-630').length,
+            purchases: analyticsData.purchases.filter(p => p.show_id === 'tue-630').length,
+            revenue: analyticsData.purchases.filter(p => p.show_id === 'tue-630').reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            conversion_rate: 0
+          },
+          'thu-530': {
+            selections: analyticsData.showSelections.filter(s => s.show_id === 'thu-530').length,
+            purchases: analyticsData.purchases.filter(p => p.show_id === 'thu-530').length,
+            revenue: analyticsData.purchases.filter(p => p.show_id === 'thu-530').reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            conversion_rate: 0
+          },
+          'thu-630': {
+            selections: analyticsData.showSelections.filter(s => s.show_id === 'thu-630').length,
+            purchases: analyticsData.purchases.filter(p => p.show_id === 'thu-630').length,
+            revenue: analyticsData.purchases.filter(p => p.show_id === 'thu-630').reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            conversion_rate: 0
+          }
+        };
+        
+        // Calculate conversion rates
+        Object.keys(showBreakdown).forEach(showId => {
+          const show = showBreakdown[showId];
+          if (show.selections > 0) {
+            show.conversion_rate = (show.purchases / show.selections) * 100;
+          }
+        });
         
         // Get fraud detection data
         const violations = {
@@ -1165,7 +1229,13 @@ exports.handler = async (event, context) => {
             totalShowSelections,
             totalPurchases,
             totalRevenue,
+            activeUsers: activeUsers.length,
+            activeStudentUsers,
+            activeVolunteerUsers,
+            activeUsersList,
             domainBreakdown,
+            showBreakdown,
+            limitViolations,
             sessionCount: (analyticsData.sessions || []).length,
             recentActivity: analyticsData.userLogins.slice(-10).map(login => ({
               activity_type: 'login',
@@ -1184,6 +1254,7 @@ exports.handler = async (event, context) => {
               },
               recent_violations: allViolations.slice(-10)
             },
+            timeframe: 'all',
             lastUpdated: analyticsData.metadata?.lastUpdated || new Date().toISOString()
           })
         };
