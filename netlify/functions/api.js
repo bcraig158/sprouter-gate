@@ -5,7 +5,10 @@ const { DateTime } = require('luxon');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
-const DB_PATH = process.env.DATABASE_PATH || '/tmp/sprouter_events.db';
+
+// In production, we'll use in-memory data instead of SQLite
+// SQLite doesn't work well in serverless environments
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Database helper functions
 function runQuery(sql, params = []) {
@@ -349,11 +352,19 @@ exports.handler = async (event, context) => {
       let volunteerCodes = [];
       try {
         console.log('Looking for volunteer codes at:', volunteerCodesPath);
+        console.log('Current working directory:', process.cwd());
+        console.log('__dirname:', __dirname);
+        
         if (fs.existsSync(volunteerCodesPath)) {
           volunteerCodes = JSON.parse(fs.readFileSync(volunteerCodesPath, 'utf-8'));
           console.log('Loaded volunteer codes:', volunteerCodes.length, 'volunteers');
         } else {
           console.error('Volunteer codes file not found at:', volunteerCodesPath);
+          // Try alternative paths
+          const altPath1 = path.join(__dirname, '../volunteer-codes.json');
+          const altPath2 = path.join(process.cwd(), 'volunteer-codes.json');
+          console.log('Trying alternative path 1:', altPath1, 'exists:', fs.existsSync(altPath1));
+          console.log('Trying alternative path 2:', altPath2, 'exists:', fs.existsSync(altPath2));
         }
       } catch (error) {
         console.error('Error loading volunteer codes:', error);

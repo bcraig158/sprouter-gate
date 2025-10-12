@@ -2,12 +2,12 @@ import axios from 'axios';
 
 // Environment-aware API configuration
 const getApiBaseUrl = () => {
-  // In production (Netlify), no backend API needed - app works standalone
-  if (import.meta.env.PROD) {
-    return null; // Return null to disable API calls in production
+  // In development, use the proxy (Vite handles this automatically)
+  if (import.meta.env.DEV) {
+    return '/api'; // Use proxy in development
   }
-  // In development, use the proxy or direct backend URL
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+  // In production, use Netlify Functions
+  return '/.netlify/functions/api';
 };
 
 const api = axios.create({
