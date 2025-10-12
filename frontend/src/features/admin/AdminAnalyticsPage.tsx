@@ -51,6 +51,21 @@ interface AnalyticsData {
   }>;
   limitViolations: Array<any>;
   timeframe: string;
+  fraud_detection?: {
+    total_violations: number;
+    violations_by_type: {
+      dailyTicketExceeded: number;
+      multipleLogins: number;
+      suspiciousIPs: number;
+    };
+    recent_violations: Array<{
+      type: string;
+      user_id: string;
+      user_type: string;
+      timestamp: string;
+      [key: string]: any;
+    }>;
+  };
   enhancedAnalytics?: {
     loginFrequency: { [userId: string]: any };
     userSessions: { [userId: string]: any };
@@ -109,7 +124,7 @@ export default function AdminAnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
-  const [activeTab, setActiveTab] = useState<'overview' | 'enhanced' | 'users' | 'shows' | 'revenue'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'enhanced' | 'users' | 'shows' | 'revenue' | 'violations'>('overview');
   const [lastRefresh] = useState<Date>(new Date());
 
   // Check if user is authenticated and is admin
@@ -262,7 +277,8 @@ export default function AdminAnalyticsPage() {
               { id: 'enhanced', label: 'Enhanced Analytics', icon: '🔍', shortLabel: 'Enhanced' },
               { id: 'users', label: 'Users', icon: '👥', shortLabel: 'Users' },
               { id: 'shows', label: 'Shows', icon: '🎭', shortLabel: 'Shows' },
-              { id: 'revenue', label: 'Revenue', icon: '💰', shortLabel: 'Revenue' }
+              { id: 'revenue', label: 'Revenue', icon: '💰', shortLabel: 'Revenue' },
+              { id: 'violations', label: 'Violations', icon: '⚠️', shortLabel: 'Violations' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1207,6 +1223,91 @@ export default function AdminAnalyticsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Violations Tab */}
+        {activeTab === 'violations' && analyticsData && (
+          <div className="space-y-8">
+            {/* Fraud Detection Summary */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Fraud Detection Summary</h3>
+              {analyticsData.fraud_detection ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-red-50 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-red-800 mb-2">Total Violations</h4>
+                    <p className="text-3xl font-bold text-red-600">{analyticsData.fraud_detection.total_violations}</p>
+                    <p className="text-sm text-red-600 mt-1">All types</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-orange-800 mb-2">Daily Limit Exceeded</h4>
+                    <p className="text-3xl font-bold text-orange-600">{analyticsData.fraud_detection.violations_by_type.dailyTicketExceeded}</p>
+                    <p className="text-sm text-orange-600 mt-1">Ticket limit violations</p>
+                  </div>
+                  <div className="bg-yellow-50 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-yellow-800 mb-2">Multiple Logins</h4>
+                    <p className="text-3xl font-bold text-yellow-600">{analyticsData.fraud_detection.violations_by_type.multipleLogins}</p>
+                    <p className="text-sm text-yellow-600 mt-1">Excessive login attempts</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-purple-800 mb-2">Suspicious IPs</h4>
+                    <p className="text-3xl font-bold text-purple-600">{analyticsData.fraud_detection.violations_by_type.suspiciousIPs}</p>
+                    <p className="text-sm text-purple-600 mt-1">IP sharing detected</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 text-4xl mb-2">✅</div>
+                  <h4 className="text-lg font-semibold text-gray-600 mb-2">No Fraud Detected</h4>
+                  <p className="text-sm text-gray-500">All user activity appears normal</p>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Violations */}
+            {analyticsData.fraud_detection && analyticsData.fraud_detection.recent_violations.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Violations</h3>
+                <div className="space-y-4">
+                  {analyticsData.fraud_detection.recent_violations.map((violation, index) => (
+                    <div key={index} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-red-800 capitalize">
+                          {violation.type.replace(/([A-Z])/g, ' $1').trim()}
+                        </h4>
+                        <span className="text-sm text-gray-500">
+                          {new Date(violation.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        <p><strong>User:</strong> {violation.user_id} ({violation.user_type})</p>
+                        {violation.current_tickets && (
+                          <p><strong>Tickets:</strong> {violation.current_tickets}/{violation.max_allowed}</p>
+                        )}
+                        {violation.login_count && (
+                          <p><strong>Logins:</strong> {violation.login_count} in 24h</p>
+                        )}
+                        {violation.ip_address && (
+                          <p><strong>IP:</strong> {violation.ip_address}</p>
+                        )}
+                        {violation.unique_users && (
+                          <p><strong>Users from IP:</strong> {violation.unique_users}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Violations Message */}
+            {analyticsData.fraud_detection && analyticsData.fraud_detection.recent_violations.length === 0 && (
+              <div className="bg-green-50 rounded-xl shadow-lg p-8 text-center">
+                <div className="text-green-400 text-6xl mb-4">✅</div>
+                <h3 className="text-2xl font-bold text-green-800 mb-2">All Clear!</h3>
+                <p className="text-green-600">No recent violations detected. System is operating normally.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

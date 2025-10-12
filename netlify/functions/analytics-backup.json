@@ -1,0 +1,24 @@
+{
+  "userLogins": [
+    {
+      "user_id": "TEST_FILE_STORAGE_001",
+      "user_type": "student",
+      "identifier": "12345",
+      "email": "te***@example.com",
+      "name": "T***r",
+      "ip_hash": "12ca17b49af22894",
+      "user_agent_hash": "5f261ee5817b7f8d",
+      "login_timestamp": "2025-10-12T18:41:46.814Z",
+      "session_id": "TEST_SESSION_001"
+    }
+  ],
+  "showSelections": [],
+  "purchases": [],
+  "sessions": {},
+  "metadata": {
+    "lastUpdated": "2025-10-12T18:41:46.817Z",
+    "version": "2.0",
+    "storage": "netlify-secure-file",
+    "encryption": "AES-256-CBC"
+  }
+}

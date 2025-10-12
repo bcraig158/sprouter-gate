@@ -590,9 +590,6 @@ async function initializeStorage() {
 // Initialize on startup
 initializeStorage();
 
-// In-memory storage for sessions (temporary)
-const sessions = new Map();
-
 // Helper functions
 function findStudent(studentId) {
   return students.find(s => s.student_id === studentId);
@@ -604,29 +601,199 @@ function findVolunteer(code, email) {
   );
 }
 
-function createSession(householdId) {
+// ✅ PERSISTENT SESSION STORAGE
+async function createSession(householdId) {
   const sessionId = bcrypt.hashSync(householdId + Date.now(), 10);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   
-  sessions.set(sessionId, {
+  const sessionData = {
+    sessionId,
     householdId,
     expiresAt,
     createdAt: new Date().toISOString()
-  });
+  };
   
+  await secureStorage.storeAuthSession(sessionData);
   return sessionId;
 }
 
-function verifySession(sessionId) {
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-  
-  if (new Date() > new Date(session.expiresAt)) {
-    sessions.delete(sessionId);
+// ✅ FRAUD DETECTION FUNCTIONS
+async function checkAllDailyLimits() {
+  try {
+    const analyticsData = await secureStorage.getAnalytics();
+    const today = new Date().toISOString().split('T')[0];
+    const violations = [];
+    
+    // Group purchases by user and date
+    const dailyPurchases = {};
+    analyticsData.purchases.forEach(purchase => {
+      const purchaseDate = purchase.purchase_timestamp?.split('T')[0] || purchase.timestamp?.split('T')[0];
+      if (purchaseDate === today) {
+        const userId = purchase.user_id;
+        if (!dailyPurchases[userId]) {
+          dailyPurchases[userId] = {
+            user_id: userId,
+            user_type: purchase.user_type,
+            total_tickets: 0,
+            total_spent: 0,
+            shows: new Set()
+          };
+        }
+        dailyPurchases[userId].total_tickets += purchase.tickets_purchased || 0;
+        dailyPurchases[userId].total_spent += purchase.total_cost || 0;
+        dailyPurchases[userId].shows.add(purchase.show_id);
+      }
+    });
+    
+    // Check limits
+    Object.values(dailyPurchases).forEach(purchase => {
+      const maxTickets = purchase.user_type === 'volunteer' ? 4 : 2;
+      if (purchase.total_tickets > maxTickets) {
+        violations.push({
+          type: 'daily_ticket_exceeded',
+          user_id: purchase.user_id,
+          user_type: purchase.user_type,
+          current_tickets: purchase.total_tickets,
+          max_allowed: maxTickets,
+          total_spent: purchase.total_spent,
+          shows_attended: Array.from(purchase.shows),
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+    
+    return violations;
+  } catch (error) {
+    console.error('Error checking daily limits:', error);
+    return [];
+  }
+}
+
+async function detectAllMultipleLogins() {
+  try {
+    const analyticsData = await secureStorage.getAnalytics();
+    const violations = [];
+    
+    // Group logins by user in the last 24 hours
+    const recentLogins = analyticsData.userLogins.filter(login => {
+      const loginTime = new Date(login.login_timestamp);
+      const now = new Date();
+      return (now - loginTime) < 24 * 60 * 60 * 1000; // 24 hours
+    });
+    
+    const userLoginCounts = {};
+    recentLogins.forEach(login => {
+      const userId = login.user_id;
+      if (!userLoginCounts[userId]) {
+        userLoginCounts[userId] = [];
+      }
+      userLoginCounts[userId].push(login);
+    });
+    
+    // Check for multiple logins (more than 3 in 24 hours)
+    Object.entries(userLoginCounts).forEach(([userId, logins]) => {
+      if (logins.length > 3) {
+        violations.push({
+          type: 'multiple_logins',
+          user_id: userId,
+          user_type: logins[0].user_type,
+          login_count: logins.length,
+          logins: logins.map(l => ({
+            timestamp: l.login_timestamp,
+            domain: l.domain,
+            ip_address: l.ip_address
+          })),
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+    
+    return violations;
+  } catch (error) {
+    console.error('Error detecting multiple logins:', error);
+    return [];
+  }
+}
+
+async function detectIPSharing() {
+  try {
+    const analyticsData = await secureStorage.getAnalytics();
+    const violations = [];
+    
+    // Group logins by IP address in the last 24 hours
+    const recentLogins = analyticsData.userLogins.filter(login => {
+      const loginTime = new Date(login.login_timestamp);
+      const now = new Date();
+      return (now - loginTime) < 24 * 60 * 60 * 1000; // 24 hours
+    });
+    
+    const ipLoginCounts = {};
+    recentLogins.forEach(login => {
+      const ip = login.ip_address || 'unknown';
+      if (!ipLoginCounts[ip]) {
+        ipLoginCounts[ip] = [];
+      }
+      ipLoginCounts[ip].push(login);
+    });
+    
+    // Check for IP sharing (more than 2 different users from same IP)
+    Object.entries(ipLoginCounts).forEach(([ip, logins]) => {
+      const uniqueUsers = new Set(logins.map(l => l.user_id));
+      if (uniqueUsers.size > 2) {
+        violations.push({
+          type: 'ip_sharing',
+          ip_address: ip,
+          unique_users: uniqueUsers.size,
+          users: Array.from(uniqueUsers).map(userId => {
+            const userLogins = logins.filter(l => l.user_id === userId);
+            return {
+              user_id: userId,
+              user_type: userLogins[0].user_type,
+              login_count: userLogins.length,
+              first_login: userLogins[0].login_timestamp,
+              last_login: userLogins[userLogins.length - 1].login_timestamp
+            };
+          }),
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+    
+    return violations;
+  } catch (error) {
+    console.error('Error detecting IP sharing:', error);
+    return [];
+  }
+}
+
+async function verifySession(sessionId) {
+  try {
+    const session = await secureStorage.getAuthSession(sessionId);
+    
+    if (!session) return null;
+    
+    if (new Date() > new Date(session.expiresAt)) {
+      await secureStorage.deleteAuthSession(sessionId);
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Session verification error:', error);
     return null;
   }
-  
-  return session;
+}
+
+// Cleanup expired sessions periodically
+async function cleanupSessions() {
+  try {
+    const cleaned = await secureStorage.cleanupExpiredSessions();
+    if (cleaned > 0) {
+      console.log(`Cleaned up ${cleaned} expired sessions`);
+    }
+  } catch (error) {
+    console.error('Session cleanup error:', error);
+  }
 }
 
 // Main handler
@@ -652,6 +819,13 @@ exports.handler = async (event, context) => {
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Content-Type': 'application/json'
     };
+    
+    // Periodic session cleanup (10% of requests)
+    if (Math.random() < 0.1) {
+      secureStorage.cleanupExpiredSessions().catch(err => 
+        console.error('Session cleanup error:', err)
+      );
+    }
     
     // Handle preflight requests
     if (httpMethod === 'OPTIONS') {
@@ -714,7 +888,7 @@ exports.handler = async (event, context) => {
       );
       
       // Create session
-      const sessionId = createSession(student.household_id);
+      const sessionId = await createSession(student.household_id);
       
       // Track login in secure storage
       const loginData = {
@@ -733,9 +907,8 @@ exports.handler = async (event, context) => {
       // Store in secure file storage
       await secureStorage.storeLogin(loginData);
       
-      // Update local cache
-      const sanitizedData = secureStorage.sanitizeLoginData(loginData);
-      analyticsData.userLogins.push(sanitizedData);
+      // ✅ CLEANUP OLD SESSIONS (RUN IN BACKGROUND)
+      cleanupSessions().catch(err => console.error('Cleanup failed:', err));
       
       return {
         statusCode: 200,
@@ -793,7 +966,7 @@ exports.handler = async (event, context) => {
       );
       
       // Create session
-      const sessionId = createSession(volunteerHouseholdId);
+      const sessionId = await createSession(volunteerHouseholdId);
       
       // Track login in secure storage
       const loginData = {
@@ -812,9 +985,8 @@ exports.handler = async (event, context) => {
       // Store in secure file storage
       await secureStorage.storeLogin(loginData);
       
-      // Update local cache
-      const sanitizedData = secureStorage.sanitizeLoginData(loginData);
-      analyticsData.userLogins.push(sanitizedData);
+      // ✅ CLEANUP OLD SESSIONS (RUN IN BACKGROUND)
+      cleanupSessions().catch(err => console.error('Cleanup failed:', err));
       
       return {
         statusCode: 200,
@@ -846,18 +1018,6 @@ exports.handler = async (event, context) => {
       
         // Store in secure file storage
         await secureStorage.storeEvent(eventData);
-      
-      // Update local cache
-      if (eventType === 'sprouter_embed_loaded') {
-        analyticsData.showSelections.push(eventData);
-      } else if (eventType === 'sprouter_checkout_completed') {
-        analyticsData.purchases.push({
-          ...eventData,
-          total_cost: metadata?.total_cost || 0,
-          tickets_purchased: metadata?.tickets_purchased || 0,
-          payment_method: metadata?.payment_method || 'unknown'
-        });
-      }
       
       return {
         statusCode: 200,
@@ -936,7 +1096,87 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Analytics endpoint removed - handled by dedicated analytics.js function
+    // Analytics endpoint
+    if (route === '/analytics' && httpMethod === 'GET') {
+      try {
+        console.log('Analytics requested');
+        
+        const analyticsData = await secureStorage.getAnalytics();
+        
+        const totalLogins = analyticsData.userLogins.length;
+        const studentLogins = analyticsData.userLogins.filter(u => u.user_type === 'student').length;
+        const volunteerLogins = analyticsData.userLogins.filter(u => u.user_type === 'volunteer').length;
+        const totalShowSelections = analyticsData.showSelections.length;
+        const totalPurchases = analyticsData.purchases.length;
+        const totalRevenue = analyticsData.purchases.reduce((sum, p) => {
+          const cost = p.metadata?.total_cost || p.total_cost || 0;
+          return sum + cost;
+        }, 0);
+        
+        // Get domain breakdown
+        const domainBreakdown = analyticsData.userLogins.reduce((acc, login) => {
+          const domain = login.domain || 'unknown';
+          acc[domain] = (acc[domain] || 0) + 1;
+          return acc;
+        }, {});
+        
+        // Get fraud detection data
+        const violations = {
+          dailyTicketExceeded: await checkAllDailyLimits(),
+          multipleLogins: await detectAllMultipleLogins(),
+          suspiciousIPs: await detectIPSharing()
+        };
+        
+        const allViolations = [
+          ...violations.dailyTicketExceeded,
+          ...violations.multipleLogins,
+          ...violations.suspiciousIPs
+        ];
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            totalLogins,
+            studentLogins,
+            volunteerLogins,
+            totalShowSelections,
+            totalPurchases,
+            totalRevenue,
+            domainBreakdown,
+            sessionCount: Object.keys(analyticsData.sessions || {}).length,
+            recentActivity: analyticsData.userLogins.slice(-10).map(login => ({
+              activity_type: 'login',
+              activity_details: `${login.user_type} login: ${login.identifier}`,
+              activity_timestamp: login.login_timestamp,
+              user_id: login.user_id,
+              user_type: login.user_type,
+              domain: login.domain
+            })),
+            fraud_detection: {
+              total_violations: allViolations.length,
+              violations_by_type: {
+                dailyTicketExceeded: violations.dailyTicketExceeded.length,
+                multipleLogins: violations.multipleLogins.length,
+                suspiciousIPs: violations.suspiciousIPs.length
+              },
+              recent_violations: allViolations.slice(-10)
+            },
+            lastUpdated: analyticsData.metadata?.lastUpdated || new Date().toISOString()
+          })
+        };
+      } catch (error) {
+        console.error('Analytics error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            error: 'Failed to retrieve analytics',
+            message: error.message 
+          })
+        };
+      }
+    }
     
     // Data export endpoint (admin only)
     if (route === '/export-data' && httpMethod === 'GET') {

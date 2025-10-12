@@ -306,8 +306,8 @@ class SecureStorage {
       const enhancedSessionData = {
         ...sessionData,
         stored_at: new Date().toISOString(),
-        ip_hash: crypto.createHash('sha256').update(sessionData.ip_address).digest('hex').substring(0, 16),
-        user_agent_hash: crypto.createHash('sha256').update(sessionData.user_agent).digest('hex').substring(0, 16)
+        ip_hash: crypto.createHash('sha256').update(sessionData.ip_address || '').digest('hex').substring(0, 16),
+        user_agent_hash: crypto.createHash('sha256').update(sessionData.user_agent || '').digest('hex').substring(0, 16)
       };
       
       data.sessions.push(enhancedSessionData);
@@ -341,6 +341,89 @@ class SecureStorage {
     } catch (error) {
       console.error('Error storing activity:', error);
       return false;
+    }
+  }
+
+  // Store authentication session data
+  async storeAuthSession(sessionData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.sessions) data.sessions = {};
+      
+      const authSessionData = {
+        sessionId: sessionData.sessionId,
+        householdId: sessionData.householdId,
+        expiresAt: sessionData.expiresAt,
+        createdAt: sessionData.createdAt,
+        stored_at: new Date().toISOString()
+      };
+      
+      data.sessions[sessionData.sessionId] = authSessionData;
+      await this.saveData(data);
+      console.log(`✅ Auth session stored: ${sessionData.sessionId}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing auth session:', error);
+      return false;
+    }
+  }
+
+  // Get authentication session by ID
+  async getAuthSession(sessionId) {
+    try {
+      const data = await this.loadData();
+      return data.sessions?.[sessionId] || null;
+    } catch (error) {
+      console.error('Error getting auth session:', error);
+      return null;
+    }
+  }
+
+  // Delete authentication session
+  async deleteAuthSession(sessionId) {
+    try {
+      const data = await this.loadData();
+      
+      if (data.sessions && data.sessions[sessionId]) {
+        delete data.sessions[sessionId];
+        await this.saveData(data);
+        console.log(`✅ Auth session deleted: ${sessionId}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting auth session:', error);
+      return false;
+    }
+  }
+
+  // Clean up expired authentication sessions
+  async cleanupExpiredSessions() {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.sessions) return 0;
+      
+      const now = new Date();
+      let cleanedCount = 0;
+      
+      for (const [sessionId, session] of Object.entries(data.sessions)) {
+        if (new Date(session.expiresAt) < now) {
+          delete data.sessions[sessionId];
+          cleanedCount++;
+        }
+      }
+      
+      if (cleanedCount > 0) {
+        await this.saveData(data);
+        console.log(`🧹 Cleaned up ${cleanedCount} expired sessions`);
+      }
+      
+      return cleanedCount;
+    } catch (error) {
+      console.error('Error cleaning up sessions:', error);
+      return 0;
     }
   }
 
@@ -590,7 +673,7 @@ class SecureStorage {
       userLogins: [],
       showSelections: [],
       purchases: [],
-      sessions: {},
+      sessions: [], // Changed to array to match storeSession method
       activities: [],
       metadata: {
         lastUpdated: new Date().toISOString(),
