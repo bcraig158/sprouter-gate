@@ -84,67 +84,26 @@ export default function AdminAnalyticsPage() {
       setAnalyticsData(data);
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);
-      // Fallback to mock data if API fails
-      const mockData: AnalyticsData = {
-        totalLogins: 156,
-        studentLogins: 134,
-        volunteerLogins: 22,
-        totalShowSelections: 89,
-        totalPurchases: 67,
-        totalRevenue: 2450.00,
+      // Show empty state instead of mock data
+      const emptyData: AnalyticsData = {
+        totalLogins: 0,
+        studentLogins: 0,
+        volunteerLogins: 0,
+        totalShowSelections: 0,
+        totalPurchases: 0,
+        totalRevenue: 0,
         showBreakdown: {
-          'tue-530': { 
-            selections: 23, 
-            purchases: 18, 
-            revenue: 450.00, 
-            conversion_rate: 78 
-          },
-          'tue-630': { 
-            selections: 28, 
-            purchases: 22, 
-            revenue: 550.00, 
-            conversion_rate: 79 
-          },
-          'thu-530': { 
-            selections: 20, 
-            purchases: 15, 
-            revenue: 375.00, 
-            conversion_rate: 75 
-          },
-          'thu-630': { 
-            selections: 18, 
-            purchases: 12, 
-            revenue: 300.00, 
-            conversion_rate: 67 
-          }
+          'tue-530': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+          'tue-630': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+          'thu-530': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+          'thu-630': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 }
         },
-        recentActivity: [
-          {
-            activity_type: 'login',
-            activity_details: 'Student login: STU001',
-            activity_timestamp: new Date().toISOString(),
-            user_id: 'HH_001',
-            user_type: 'student'
-          }
-        ],
-        topUsers: [
-          {
-            user_id: 'HH_001',
-            user_type: 'student',
-            identifier: 'STU001',
-            name: 'John Smith',
-            total_selections: 2,
-            total_purchase_intents: 2,
-            total_purchases: 2,
-            total_sprouter_successes: 2,
-            total_spent: 50.00,
-            last_activity: new Date().toISOString()
-          }
-        ],
+        recentActivity: [],
+        topUsers: [],
         limitViolations: [],
         timeframe: selectedTimeframe
       };
-      setAnalyticsData(mockData);
+      setAnalyticsData(emptyData);
     } finally {
       setIsLoading(false);
     }

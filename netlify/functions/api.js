@@ -826,12 +826,12 @@ exports.handler = async (event, context) => {
       const eventKeys = ['tue-530', 'tue-630', 'thu-530', 'thu-630'];
       eventKeys.forEach(key => {
         const selections = showSelections.filter(s => s.event_key === key);
-        const purchases = purchases.filter(p => p.event_key === key);
+        const eventPurchases = purchases.filter(p => p.event_key === key);
         eventBreakdown[key] = {
           selections: selections.length,
-          purchases: purchases.length,
-          conversion_rate: selections.length > 0 ? Math.round(purchases.length / selections.length * 100) : 0,
-          revenue: purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0)
+          purchases: eventPurchases.length,
+          conversion_rate: selections.length > 0 ? Math.round(eventPurchases.length / selections.length * 100) : 0,
+          revenue: eventPurchases.reduce((sum, p) => sum + (p.total_cost || 0), 0)
         };
       });
       
