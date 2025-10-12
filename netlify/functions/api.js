@@ -87,10 +87,23 @@ async function initDatabase() {
       VALUES (?, ?)
     `, ['HH_33727', false]);
 
-    await runQuery(`
-      INSERT OR IGNORE INTO volunteer_codes (code, email, name) 
-      VALUES (?, ?, ?)
-    `, ['339933', 'admin@maidu.com', 'Admin']);
+    // Add volunteers from volunteer-codes.json
+    const volunteers = [
+      { code: '339933', email: 'admin@maidu.com', name: 'Admin' },
+      { code: '518705', email: 'biancaybalderas@gmail.com', name: 'Bianca Balderas' },
+      { code: '908693', email: 'Samantha.jackson12@hotmail.com', name: 'Dana Maslak' },
+      { code: '877604', email: 'Debbieschairer@gmail.com', name: 'Debbie Schairer' },
+      { code: '387001', email: 'guzeka84@gmail.com', name: 'Guzel Garipova' },
+      { code: '705154', email: 'abraham4cm@gmail.com', name: 'Henny Abraham' },
+      { code: '123456', email: 'test@example.com', name: 'Test Volunteer' }
+    ];
+
+    for (const volunteer of volunteers) {
+      await runQuery(`
+        INSERT OR IGNORE INTO volunteer_codes (code, email, name) 
+        VALUES (?, ?, ?)
+      `, [volunteer.code, volunteer.email.toLowerCase(), volunteer.name]);
+    }
 
     console.log('Database initialized successfully');
   } catch (error) {
