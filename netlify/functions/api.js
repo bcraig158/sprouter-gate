@@ -893,6 +893,9 @@ exports.handler = async (event, context) => {
       // Store in secure file storage
       await secureStorage.storeEvent(eventData);
       
+      // Store in database
+      await storeEventInDatabase(eventData);
+      
       // Update local cache
       if (eventType === 'sprouter_embed_loaded') {
         analyticsData.showSelections.push(eventData);
@@ -1055,5 +1058,121 @@ exports.handler = async (event, context) => {
   }
 };
 
+// Store event data in database
+async function storeEventInDatabase(eventData) {
+  return new Promise((resolve, reject) => {
+    const dbPath = path.join(__dirname, 'backend/data/sprouter_events.db');
+    const db = new sqlite3.Database(dbPath);
+    
+    console.log('🔍 storeEventInDatabase - Event type:', eventData.eventType);
+    console.log('🔍 storeEventInDatabase - Event key:', eventData.eventKey);
+    
+    if (eventData.eventType === 'sprouter_embed_loaded') {
+      // Store in show_selections table
+      const query = `
+        INSERT INTO show_selections (
+          user_id, user_type, show_id, show_date, show_time, show_datetime, tickets_requested, 
+          selection_timestamp, ip_address, user_agent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      // Parse event key to get date/time info
+      const eventInfo = {
+        'tue-530': { date: '2025-10-28', time: '17:30', datetime: '2025-10-28 17:30:00' },
+        'tue-630': { date: '2025-10-28', time: '18:30', datetime: '2025-10-28 18:30:00' },
+        'thu-530': { date: '2025-10-30', time: '17:30', datetime: '2025-10-30 17:30:00' },
+        'thu-630': { date: '2025-10-30', time: '18:30', datetime: '2025-10-30 18:30:00' }
+      };
+      
+      const eventDetails = eventInfo[eventData.eventKey] || { date: '2025-10-28', time: '17:30', datetime: '2025-10-28 17:30:00' };
+      
+      const values = [
+        eventData.userId,
+        eventData.userType,
+        eventData.eventKey,
+        eventDetails.date,
+        eventDetails.time,
+        eventDetails.datetime,
+        eventData.metadata?.tickets_requested || 1,
+        eventData.timestamp,
+        eventData.ip_address,
+        eventData.user_agent
+      ];
+      
+      db.run(query, values, function(err) {
+        db.close();
+        if (err) {
+          console.error('Database error storing show selection:', err);
+          reject(err);
+        } else {
+          console.log(`✅ Show selection stored in database: ${eventData.userType} - ${eventData.eventKey}`);
+          resolve(this.lastID);
+        }
+      });
+    } else if (eventData.eventType === 'sprouter_checkout_completed') {
+      // Store in purchases table
+      const query = `
+        INSERT INTO purchases (
+          user_id, user_type, show_id, tickets_purchased, 
+          total_cost, purchase_timestamp, ip_address, user_agent, metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const values = [
+        eventData.userId,
+        eventData.userType,
+        eventData.eventKey,
+        eventData.metadata?.tickets_purchased || 1,
+        eventData.metadata?.total_cost || 0,
+        eventData.timestamp,
+        eventData.ip_address,
+        eventData.user_agent,
+        JSON.stringify(eventData.metadata || {})
+      ];
+      
+      db.run(query, values, function(err) {
+        db.close();
+        if (err) {
+          console.error('Database error storing purchase:', err);
+          reject(err);
+        } else {
+          console.log(`✅ Purchase stored in database: ${eventData.userType} - ${eventData.eventKey} - $${eventData.metadata?.total_cost || 0}`);
+          resolve(this.lastID);
+        }
+      });
+    } else {
+      // Other event types (checkout_started, checkout_abandoned) - store in user_activity_timeline
+      const query = `
+        INSERT INTO user_activity_timeline (
+          user_id, user_type, activity_type, activity_details, 
+          activity_timestamp, ip_address, user_agent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const values = [
+        eventData.userId,
+        eventData.userType,
+        eventData.eventType,
+        JSON.stringify(eventData),
+        eventData.timestamp,
+        eventData.ip_address,
+        eventData.user_agent
+      ];
+      
+      db.run(query, values, function(err) {
+        db.close();
+        if (err) {
+          console.error('Database error storing activity:', err);
+          reject(err);
+        } else {
+          console.log(`✅ Activity stored in database: ${eventData.userType} - ${eventData.eventType}`);
+          resolve(this.lastID);
+        }
+      });
+    }
+  });
+}
+
 // Export the storeLoginInDatabase function for testing
 module.exports.storeLoginInDatabase = storeLoginInDatabase;
+module.exports.storeEventInDatabase = storeEventInDatabase;
