@@ -172,10 +172,34 @@ class SecureStorage {
     try {
       const data = await this.loadData();
       
+      // Enhanced event storage with detailed metadata
+      const enhancedEventData = {
+        ...eventData,
+        stored_at: new Date().toISOString(),
+        metadata: {
+          ...eventData.metadata,
+          // Extract and store detailed checkout information
+          ticket_quantity: eventData.metadata?.ticket_quantity || null,
+          total_price: eventData.metadata?.total_price || null,
+          event_name: eventData.metadata?.event_name || null,
+          iframe_url: eventData.metadata?.iframe_url || null,
+          form_count: eventData.metadata?.form_count || null,
+          has_checkout_form: eventData.metadata?.has_checkout_form || false,
+          payment_method: eventData.metadata?.payment_method || null,
+          has_success_indicators: eventData.metadata?.has_success_indicators || false,
+          // Store raw metadata for debugging
+          raw_metadata: eventData.metadata
+        }
+      };
+      
       if (eventData.event_type === 'sprouter_embed_loaded') {
-        data.showSelections.push(eventData);
+        data.showSelections.push(enhancedEventData);
       } else if (eventData.event_type === 'sprouter_checkout_completed') {
-        data.purchases.push(eventData);
+        data.purchases.push(enhancedEventData);
+      } else {
+        // Store other event types in a general events array
+        if (!data.events) data.events = [];
+        data.events.push(enhancedEventData);
       }
       
       await this.saveData(data);
@@ -376,6 +400,9 @@ class SecureStorage {
       checkoutAttempts[userId].eventsAttempted = Array.from(checkoutAttempts[userId].eventsAttempted);
     });
 
+    // Calculate detailed checkout analytics
+    const checkoutAnalytics = this.calculateCheckoutAnalytics(data);
+
     // Calculate summary statistics
     const summary = {
       totalUniqueUsers: Object.keys(loginFrequency).length,
@@ -404,7 +431,8 @@ class SecureStorage {
           userId,
           sameNightDates: Object.keys(data.sameNightAttempts),
           totalSameNightAttempts: Object.values(data.sameNightAttempts).reduce((sum, attempts) => sum + attempts.length, 0)
-        }))
+        })),
+      checkoutAnalytics
     };
 
     return {
@@ -460,6 +488,148 @@ class SecureStorage {
       console.error('Error exporting data:', error);
       return null;
     }
+  }
+
+  // Calculate detailed checkout analytics
+  calculateCheckoutAnalytics(data) {
+    const allEvents = [
+      ...(data.showSelections || []),
+      ...(data.purchases || []),
+      ...(data.events || [])
+    ];
+
+    const checkoutAnalytics = {
+      totalCheckoutAttempts: 0,
+      totalSuccessfulPurchases: 0,
+      totalTicketQuantities: [],
+      totalRevenue: 0,
+      averageTicketQuantity: 0,
+      checkoutFormAnalysis: {
+        totalForms: 0,
+        formsWithPayment: 0,
+        formsWithQuantity: 0
+      },
+      paymentMethodBreakdown: {},
+      eventCheckoutPatterns: {},
+      userCheckoutBehavior: {},
+      iframeNavigationPatterns: {},
+      successRate: 0,
+      abandonmentRate: 0
+    };
+
+    // Analyze all events for checkout patterns
+    allEvents.forEach(event => {
+      const metadata = event.metadata || {};
+      
+      // Count checkout attempts
+      if (event.event_type === 'sprouter_checkout_started') {
+        checkoutAnalytics.totalCheckoutAttempts++;
+        
+        // Track ticket quantities
+        if (metadata.ticket_quantity) {
+          checkoutAnalytics.totalTicketQuantities.push(parseInt(metadata.ticket_quantity) || 0);
+        }
+        
+        // Track form analysis
+        if (metadata.form_count) {
+          checkoutAnalytics.checkoutFormAnalysis.totalForms += metadata.form_count;
+        }
+        if (metadata.has_checkout_form) {
+          checkoutAnalytics.checkoutFormAnalysis.formsWithPayment++;
+        }
+        if (metadata.ticket_quantity) {
+          checkoutAnalytics.checkoutFormAnalysis.formsWithQuantity++;
+        }
+        
+        // Track payment methods
+        if (metadata.payment_method) {
+          checkoutAnalytics.paymentMethodBreakdown[metadata.payment_method] = 
+            (checkoutAnalytics.paymentMethodBreakdown[metadata.payment_method] || 0) + 1;
+        }
+        
+        // Track event-specific patterns
+        if (!checkoutAnalytics.eventCheckoutPatterns[event.event_key]) {
+          checkoutAnalytics.eventCheckoutPatterns[event.event_key] = {
+            attempts: 0,
+            successful: 0,
+            totalTickets: 0,
+            totalRevenue: 0
+          };
+        }
+        checkoutAnalytics.eventCheckoutPatterns[event.event_key].attempts++;
+        
+        // Track user behavior
+        if (!checkoutAnalytics.userCheckoutBehavior[event.user_id]) {
+          checkoutAnalytics.userCheckoutBehavior[event.user_id] = {
+            totalAttempts: 0,
+            successfulPurchases: 0,
+            totalTicketsPurchased: 0,
+            totalSpent: 0,
+            averageTicketQuantity: 0
+          };
+        }
+        checkoutAnalytics.userCheckoutBehavior[event.user_id].totalAttempts++;
+        
+        // Track iframe navigation
+        if (metadata.iframe_url) {
+          checkoutAnalytics.iframeNavigationPatterns[metadata.iframe_url] = 
+            (checkoutAnalytics.iframeNavigationPatterns[metadata.iframe_url] || 0) + 1;
+        }
+      }
+      
+      // Count successful purchases
+      if (event.event_type === 'sprouter_checkout_completed') {
+        checkoutAnalytics.totalSuccessfulPurchases++;
+        
+        // Track revenue
+        if (metadata.total_cost) {
+          checkoutAnalytics.totalRevenue += parseFloat(metadata.total_cost) || 0;
+        }
+        
+        // Update event patterns
+        if (checkoutAnalytics.eventCheckoutPatterns[event.event_key]) {
+          checkoutAnalytics.eventCheckoutPatterns[event.event_key].successful++;
+          if (metadata.tickets_purchased) {
+            checkoutAnalytics.eventCheckoutPatterns[event.event_key].totalTickets += parseInt(metadata.tickets_purchased) || 0;
+          }
+          if (metadata.total_cost) {
+            checkoutAnalytics.eventCheckoutPatterns[event.event_key].totalRevenue += parseFloat(metadata.total_cost) || 0;
+          }
+        }
+        
+        // Update user behavior
+        if (checkoutAnalytics.userCheckoutBehavior[event.user_id]) {
+          checkoutAnalytics.userCheckoutBehavior[event.user_id].successfulPurchases++;
+          if (metadata.tickets_purchased) {
+            checkoutAnalytics.userCheckoutBehavior[event.user_id].totalTicketsPurchased += parseInt(metadata.tickets_purchased) || 0;
+          }
+          if (metadata.total_cost) {
+            checkoutAnalytics.userCheckoutBehavior[event.user_id].totalSpent += parseFloat(metadata.total_cost) || 0;
+          }
+        }
+      }
+    });
+
+    // Calculate averages and rates
+    if (checkoutAnalytics.totalTicketQuantities.length > 0) {
+      checkoutAnalytics.averageTicketQuantity = 
+        checkoutAnalytics.totalTicketQuantities.reduce((sum, qty) => sum + qty, 0) / checkoutAnalytics.totalTicketQuantities.length;
+    }
+
+    if (checkoutAnalytics.totalCheckoutAttempts > 0) {
+      checkoutAnalytics.successRate = (checkoutAnalytics.totalSuccessfulPurchases / checkoutAnalytics.totalCheckoutAttempts) * 100;
+      checkoutAnalytics.abandonmentRate = 100 - checkoutAnalytics.successRate;
+    }
+
+    // Calculate user averages
+    Object.keys(checkoutAnalytics.userCheckoutBehavior).forEach(userId => {
+      const user = checkoutAnalytics.userCheckoutBehavior[userId];
+      if (user.successfulPurchases > 0) {
+        user.averageTicketQuantity = user.totalTicketsPurchased / user.successfulPurchases;
+      }
+    });
+
+    return checkoutAnalytics;
   }
 }
 

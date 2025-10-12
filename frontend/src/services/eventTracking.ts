@@ -101,12 +101,15 @@ class EventTracker {
     // Track when iframe loads
     iframe.addEventListener('load', () => {
       this.trackEmbedLoaded(eventKey);
+      
+      // Set up comprehensive monitoring after iframe loads
+      this.setupComprehensiveMonitoring(iframe, eventKey);
     });
 
     // Monitor for Sprouter-specific events via postMessage
     const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from Sprouter domains
-      if (!event.origin.includes('sprouter.online')) {
+      // Accept messages from Sprouter domains and our own domain
+      if (!event.origin.includes('sprouter') && !event.origin.includes('maidutickets')) {
         return;
       }
 
@@ -135,6 +138,173 @@ class EventTracker {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
+  }
+
+  // Comprehensive iframe monitoring for checkout details
+  setupComprehensiveMonitoring(iframe: HTMLIFrameElement, eventKey: string) {
+    let monitoringInterval: NodeJS.Timeout;
+    let lastUrl = '';
+    let checkoutStarted = false;
+
+    // Monitor iframe content changes
+    const monitorIframe = () => {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        const currentUrl = iframe.contentWindow?.location.href || '';
+        
+        // Check if URL changed (indicates navigation)
+        if (currentUrl !== lastUrl) {
+          lastUrl = currentUrl;
+          
+          // Check for checkout indicators in URL
+          if (currentUrl.includes('checkout') || currentUrl.includes('payment') || currentUrl.includes('confirm')) {
+            if (!checkoutStarted) {
+              checkoutStarted = true;
+              this.trackCheckoutStarted(eventKey);
+            }
+          }
+        }
+
+        // If we can access the iframe content, extract checkout data
+        if (iframeDoc) {
+          const checkoutData = this.extractCheckoutData(iframeDoc);
+          
+          if (checkoutData.ticket_quantity || checkoutData.total_price) {
+            if (!checkoutStarted) {
+              checkoutStarted = true;
+              this.trackCheckoutStarted(eventKey);
+            }
+            
+            // Track detailed checkout information
+            this.trackEvent({
+              eventKey,
+              eventType: 'sprouter_checkout_started',
+              userId: this.userId!,
+              userType: this.userType!,
+              metadata: {
+                ...checkoutData,
+                iframe_url: currentUrl,
+                timestamp: new Date().toISOString()
+              }
+            });
+          }
+        }
+      } catch (error) {
+        // Cross-origin restrictions - this is expected for external iframes
+        console.log('Cross-origin iframe detected, using postMessage monitoring only');
+      }
+    };
+
+    // Start monitoring
+    monitoringInterval = setInterval(monitorIframe, 2000); // Check every 2 seconds
+
+    // Cleanup function
+    return () => {
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+      }
+    };
+  }
+
+  // Extract checkout data from iframe content
+  extractCheckoutData(doc: Document) {
+    const data: any = {};
+    
+    try {
+      // Look for ticket quantity
+      const quantitySelectors = [
+        'input[name*="quantity"]',
+        'select[name*="quantity"]',
+        '.quantity',
+        '.ticket-quantity',
+        '[data-quantity]',
+        'input[type="number"]'
+      ];
+      
+      for (const selector of quantitySelectors) {
+        const element = doc.querySelector(selector) as HTMLInputElement;
+        if (element) {
+          data.ticket_quantity = element.value || element.textContent || element.getAttribute('data-quantity');
+          break;
+        }
+      }
+
+      // Look for total price
+      const priceSelectors = [
+        '.total',
+        '.price',
+        '.amount',
+        '[data-total]',
+        '.checkout-total',
+        '.final-price',
+        '.grand-total'
+      ];
+      
+      for (const selector of priceSelectors) {
+        const element = doc.querySelector(selector) as HTMLInputElement;
+        if (element) {
+          data.total_price = element.textContent || element.value;
+          break;
+        }
+      }
+
+      // Look for event details
+      const eventSelectors = [
+        '.event-name',
+        '.show-title',
+        '[data-event]',
+        '.ticket-event',
+        'h1',
+        'h2',
+        '.title'
+      ];
+      
+      for (const selector of eventSelectors) {
+        const element = doc.querySelector(selector);
+        if (element) {
+          data.event_name = element.textContent;
+          break;
+        }
+      }
+
+      // Look for form data
+      const forms = doc.querySelectorAll('form');
+      if (forms.length > 0) {
+        data.form_count = forms.length;
+        data.has_checkout_form = true;
+      }
+
+      // Look for payment method indicators
+      const paymentSelectors = [
+        'input[name*="payment"]',
+        'input[name*="card"]',
+        '.payment-method',
+        '[data-payment]'
+      ];
+      
+      for (const selector of paymentSelectors) {
+        const element = doc.querySelector(selector) as HTMLInputElement;
+        if (element) {
+          data.payment_method = element.value || element.textContent;
+          break;
+        }
+      }
+
+      // Check for confirmation/success indicators
+      const successIndicators = [
+        'success', 'confirmed', 'completed', 'thank you', 'purchase complete'
+      ];
+      
+      const pageText = doc.body?.innerText?.toLowerCase() || '';
+      data.has_success_indicators = successIndicators.some(indicator => 
+        pageText.includes(indicator)
+      );
+
+    } catch (error) {
+      console.error('Error extracting checkout data:', error);
+    }
+
+    return data;
   }
 
   // Track page visibility changes (for abandonment detection)

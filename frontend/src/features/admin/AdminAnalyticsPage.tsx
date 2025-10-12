@@ -57,6 +57,24 @@ interface AnalyticsData {
       peakHours: Array<[string, number]>;
       eventEngagement: Array<{ eventKey: string; totalViews: number; uniqueUsers: number; averageViewsPerUser: number }>;
       sameNightCheckouts: Array<{ userId: string; sameNightDates: string[]; totalSameNightAttempts: number }>;
+      checkoutAnalytics?: {
+        totalCheckoutAttempts: number;
+        totalSuccessfulPurchases: number;
+        totalTicketQuantities: number[];
+        totalRevenue: number;
+        averageTicketQuantity: number;
+        checkoutFormAnalysis: {
+          totalForms: number;
+          formsWithPayment: number;
+          formsWithQuantity: number;
+        };
+        paymentMethodBreakdown: { [method: string]: number };
+        eventCheckoutPatterns: { [eventKey: string]: any };
+        userCheckoutBehavior: { [userId: string]: any };
+        iframeNavigationPatterns: { [url: string]: number };
+        successRate: number;
+        abandonmentRate: number;
+      };
     };
   };
 }
@@ -572,6 +590,156 @@ export default function AdminAnalyticsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Comprehensive Checkout Analytics */}
+            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics && (
+              <div className="space-y-6">
+                {/* Checkout Performance Overview */}
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <span className="mr-2">💳</span>
+                    Checkout Performance Analytics
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Checkout Attempts</p>
+                          <p className="text-2xl font-bold text-blue-600">
+                            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.totalCheckoutAttempts}
+                          </p>
+                        </div>
+                        <span className="text-2xl">🛒</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Successful Purchases</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.totalSuccessfulPurchases}
+                          </p>
+                        </div>
+                        <span className="text-2xl">✅</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                          <p className="text-2xl font-bold text-yellow-600">
+                            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.successRate.toFixed(1)}%
+                          </p>
+                        </div>
+                        <span className="text-2xl">📈</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Avg Ticket Quantity</p>
+                          <p className="text-2xl font-bold text-purple-600">
+                            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.averageTicketQuantity.toFixed(1)}
+                          </p>
+                        </div>
+                        <span className="text-2xl">🎫</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Method Breakdown */}
+                {Object.keys(analyticsData.enhancedAnalytics.summary.checkoutAnalytics.paymentMethodBreakdown).length > 0 && (
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">💳</span>
+                      Payment Method Breakdown
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(analyticsData.enhancedAnalytics.summary.checkoutAnalytics.paymentMethodBreakdown).map(([method, count]) => (
+                        <div key={method} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                          <span className="font-medium text-gray-800">{method}</span>
+                          <span className="text-lg font-bold text-blue-600">{count} uses</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Form Analysis */}
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span className="mr-2">📝</span>
+                    Checkout Form Analysis
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-gray-800">
+                        {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.checkoutFormAnalysis.totalForms}
+                      </p>
+                      <p className="text-sm text-gray-600">Total Forms</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-gray-800">
+                        {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.checkoutFormAnalysis.formsWithPayment}
+                      </p>
+                      <p className="text-sm text-gray-600">Payment Forms</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-gray-800">
+                        {analyticsData.enhancedAnalytics.summary.checkoutAnalytics.checkoutFormAnalysis.formsWithQuantity}
+                      </p>
+                      <p className="text-sm text-gray-600">Quantity Forms</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Event-Specific Checkout Patterns */}
+                {Object.keys(analyticsData.enhancedAnalytics.summary.checkoutAnalytics.eventCheckoutPatterns).length > 0 && (
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">🎭</span>
+                      Event-Specific Checkout Patterns
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(analyticsData.enhancedAnalytics.summary.checkoutAnalytics.eventCheckoutPatterns).map(([eventKey, data]) => (
+                        <div key={eventKey} className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-800 mb-2">
+                            {eventKey === 'tue-530' && 'Tuesday 5:30 PM'}
+                            {eventKey === 'tue-630' && 'Tuesday 6:30 PM'}
+                            {eventKey === 'thu-530' && 'Thursday 5:30 PM'}
+                            {eventKey === 'thu-630' && 'Thursday 6:30 PM'}
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Attempts:</span>
+                              <span className="ml-2 font-bold text-blue-600">{data.attempts}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Successful:</span>
+                              <span className="ml-2 font-bold text-green-600">{data.successful}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Total Tickets:</span>
+                              <span className="ml-2 font-bold text-purple-600">{data.totalTickets}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Revenue:</span>
+                              <span className="ml-2 font-bold text-yellow-600">
+                                {formatCurrency(data.totalRevenue)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
