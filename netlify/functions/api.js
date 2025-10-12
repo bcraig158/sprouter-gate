@@ -87,7 +87,7 @@ async function initDatabase() {
       VALUES (?, ?)
     `, ['HH_33727', false]);
 
-    // Add volunteers from volunteer-codes.json
+    // Add all 45 volunteers from volunteer-codes.json
     const volunteers = [
       { code: '339933', email: 'admin@maidu.com', name: 'Admin' },
       { code: '518705', email: 'biancaybalderas@gmail.com', name: 'Bianca Balderas' },
@@ -95,7 +95,46 @@ async function initDatabase() {
       { code: '877604', email: 'Debbieschairer@gmail.com', name: 'Debbie Schairer' },
       { code: '387001', email: 'guzeka84@gmail.com', name: 'Guzel Garipova' },
       { code: '705154', email: 'abraham4cm@gmail.com', name: 'Henny Abraham' },
-      { code: '123456', email: 'test@example.com', name: 'Test Volunteer' }
+      { code: '236017', email: 'reynolds4916@gmail.com', name: 'Jen Reynolds' },
+      { code: '606979', email: 'katietimoney@yahoo.com', name: 'Kathleen Timoney' },
+      { code: '627543', email: 'kaycegarcia@gmail.com', name: 'Kayce Garcia' },
+      { code: '968183', email: 'Kayladrake1@gmail.com', name: 'Kayla Drake' },
+      { code: '845934', email: 'kristin.n.ruiz@gmail.com', name: 'Kristin Aguilera' },
+      { code: '378213', email: 'laurendeary24@gmail.com', name: 'Lauren Deary' },
+      { code: '131022', email: 'lmcghee513@gmail.com', name: 'Lauren McGhee' },
+      { code: '210680', email: 'lyndsiefaber@gmail.com', name: 'Lyndsie Faber' },
+      { code: '957718', email: 'HelloNato@gmail.com', name: 'Natalie Silvia' },
+      { code: '564301', email: 'Samantha.jackson12@hotmail.com', name: 'Samantha Maslak' },
+      { code: '237721', email: 'shannonmceuen@gmail.com', name: 'Shannon McEuen' },
+      { code: '610368', email: 'Shelly.dekelaita@gmail.com', name: 'Shelly Dekelaita' },
+      { code: '637514', email: 'tassadrake@yahoo.com', name: 'Tassa Drake' },
+      { code: '223052', email: 'tmw1782@gmail.com', name: 'Tiffany Tooley' },
+      { code: '407739', email: 'Mistyatherton97@gmail.com', name: 'Misty Atherton' },
+      { code: '873077', email: 'Katieetch@gmail.com', name: 'Katie Lazarus' },
+      { code: '462401', email: 'mgomez@eurekausd.org', name: 'Ms. Gomez' },
+      { code: '368528', email: 'lschofield@eurekausd.org', name: 'Mrs. Schofield' },
+      { code: '900037', email: 'kschauer@eurekausd.org', name: 'Ms. Schauer' },
+      { code: '772424', email: 'ammoshofsky@eurekausd.org', name: 'Mrs. Moshosky' },
+      { code: '943749', email: 'cpetersen@eurekausd.org', name: 'Mrs. Petersen' },
+      { code: '621092', email: 'ahoslett@eurekausd.org', name: 'Mrs. Hoslett' },
+      { code: '382842', email: 'khagman@eurekausd.org', name: 'Mrs. Hagman' },
+      { code: '122474', email: 'amann@eurekausd.org', name: 'Mrs. Lopez' },
+      { code: '130484', email: 'kreineman@eurekausd.org', name: 'Mrs. Reineman' },
+      { code: '413682', email: 'clandrew@eurekausd.org', name: 'Mrs. Andrew' },
+      { code: '807327', email: 'chrissykhuu@gmail.com', name: 'Chrissy Khuu' },
+      { code: '258949', email: 'whitneyprussell@gmail.com', name: 'Whitney Davy' },
+      { code: '630237', email: 'elizabethmhintz@gmail.com', name: 'Elizabeth Hintz' },
+      { code: '255705', email: 'wheretruthsarefound@gmail.com', name: 'Aubrey Wong' },
+      { code: '315789', email: 'aliciaruizrn@gmail.com', name: 'Alicia Ruiz' },
+      { code: '229975', email: 'akoontz2016@gmail.com', name: 'Ashley Koontz' },
+      { code: '739957', email: 'noellet20@yahoo.com', name: 'Noelle Tallariti' },
+      { code: '354825', email: 'amanda.c.slinkard@gmail.com', name: 'Amanda Slinkard' },
+      { code: '136123', email: 'spencer.gil02@gmail.com', name: 'Spencer GiIl' },
+      { code: '575626', email: 'Lindsay.barber@sanjuan.edu', name: 'Lindsay Barber' },
+      { code: '826931', email: 'nicole_duran@me.com', name: 'Nicole Carillo' },
+      { code: '304037', email: 'jaspreetus@yahoo.com', name: 'Jaspreet Bal' },
+      { code: '847537', email: 'Aman_rn2be@yahoo.com', name: 'Amanvir Gil' },
+      { code: '670569', email: 'noda.monica@gmail.com', name: 'Monica Noda-Ruiz' }
     ];
 
     for (const volunteer of volunteers) {
@@ -103,6 +142,7 @@ async function initDatabase() {
         INSERT OR IGNORE INTO volunteer_codes (code, email, name) 
         VALUES (?, ?, ?)
       `, [volunteer.code, volunteer.email.toLowerCase(), volunteer.name]);
+      console.log(`Added volunteer: ${volunteer.code} - ${volunteer.email}`);
     }
 
     console.log('Database initialized successfully');
@@ -228,6 +268,8 @@ exports.handler = async (event, context) => {
     if (httpMethod === 'POST' && endpoint === 'volunteer-login') {
       const { volunteerCode, email } = JSON.parse(body || '{}');
 
+      console.log(`Volunteer login attempt: ${volunteerCode} - ${email}`);
+
       if (!volunteerCode || !email) {
         return {
           statusCode: 400,
@@ -242,11 +284,19 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Check all volunteers in database
+      const allVolunteers = await getQuery(`
+        SELECT * FROM volunteer_codes
+      `);
+      console.log('All volunteers in database:', allVolunteers);
+
       // Find volunteer
       const volunteer = await getQuery(
         'SELECT * FROM volunteer_codes WHERE code = ? AND email = ?',
         [volunteerCode.trim(), email.trim().toLowerCase()]
       );
+
+      console.log('Found volunteer:', volunteer);
 
       if (!volunteer) {
         console.log(`❌ Invalid volunteer login attempt: ${volunteerCode} / ${email}`);
