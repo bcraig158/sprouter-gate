@@ -778,6 +778,40 @@ exports.handler = async (event, context) => {
       };
     }
     
+    // Track event interaction
+    if (route === '/track-event' && httpMethod === 'POST') {
+      const { eventKey, eventType, userId, userType, metadata } = JSON.parse(body);
+      
+      const eventData = {
+        event_key: eventKey,
+        event_type: eventType, // 'sprouter_embed_loaded', 'sprouter_checkout_started', 'sprouter_checkout_completed', 'sprouter_checkout_abandoned'
+        user_id: userId,
+        user_type: userType,
+        metadata: metadata || {},
+        timestamp: new Date().toISOString(),
+        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        user_agent: headers['user-agent'] || ''
+      };
+      
+      // Store in appropriate array based on event type
+      if (eventType === 'sprouter_embed_loaded') {
+        showSelections.push(eventData);
+      } else if (eventType === 'sprouter_checkout_completed') {
+        purchases.push({
+          ...eventData,
+          total_cost: metadata?.total_cost || 0,
+          tickets_purchased: metadata?.tickets_purchased || 0,
+          payment_method: metadata?.payment_method || 'unknown'
+        });
+      }
+      
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, tracked: eventData })
+      };
+    }
+    
     // Analytics endpoint
     if (route === '/analytics' && httpMethod === 'GET') {
       const totalLogins = userLogins.length;
@@ -786,6 +820,20 @@ exports.handler = async (event, context) => {
       const totalShowSelections = showSelections.length;
       const totalPurchases = purchases.length;
       const totalRevenue = purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0);
+      
+      // Event-specific analytics
+      const eventBreakdown = {};
+      const eventKeys = ['tue-530', 'tue-630', 'thu-530', 'thu-630'];
+      eventKeys.forEach(key => {
+        const selections = showSelections.filter(s => s.event_key === key);
+        const purchases = purchases.filter(p => p.event_key === key);
+        eventBreakdown[key] = {
+          selections: selections.length,
+          purchases: purchases.length,
+          conversion_rate: selections.length > 0 ? Math.round(purchases.length / selections.length * 100) : 0,
+          revenue: purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0)
+        };
+      });
       
       return {
         statusCode: 200,
@@ -797,7 +845,7 @@ exports.handler = async (event, context) => {
           totalShowSelections,
           totalPurchases,
           totalRevenue,
-          showBreakdown: {},
+          showBreakdown: eventBreakdown,
           recentActivity: userLogins.slice(-10).map(login => ({
             activity_type: 'login',
             activity_details: `${login.user_type} login: ${login.identifier}`,
@@ -810,11 +858,11 @@ exports.handler = async (event, context) => {
             user_type: login.user_type,
             identifier: login.identifier,
             name: login.name,
-            total_selections: 0,
-            total_purchase_intents: 0,
-            total_purchases: 0,
-            total_sprouter_successes: 0,
-            total_spent: 0,
+            total_selections: showSelections.filter(s => s.user_id === login.user_id).length,
+            total_purchase_intents: showSelections.filter(s => s.user_id === login.user_id && s.event_type === 'sprouter_checkout_started').length,
+            total_purchases: purchases.filter(p => p.user_id === login.user_id).length,
+            total_sprouter_successes: purchases.filter(p => p.user_id === login.user_id && p.event_type === 'sprouter_checkout_completed').length,
+            total_spent: purchases.filter(p => p.user_id === login.user_id).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             last_activity: login.login_timestamp
           })),
           limitViolations: [],

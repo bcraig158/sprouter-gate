@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import { getMockSprouterUrls } from '../../utils/mockData';
+import eventTracker from '../../services/eventTracking';
 
 interface PurchaseResponse {
   success: boolean;
@@ -19,12 +20,32 @@ export default function PurchasePage() {
   const [purchaseData, setPurchaseData] = useState<PurchaseResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (eventKey) {
       handleIssueIntent();
     }
   }, [eventKey]);
+
+  // Setup event tracking when component mounts
+  useEffect(() => {
+    if (user && eventKey) {
+      // Set user for tracking
+      eventTracker.setUser(user.householdId, user.isVolunteer ? 'volunteer' : 'student');
+      
+      // Setup iframe tracking when iframe is available
+      if (iframeRef.current) {
+        const cleanupIframe = eventTracker.setupIframeTracking(iframeRef.current, eventKey);
+        const cleanupAbandonment = eventTracker.setupAbandonmentTracking(eventKey);
+        
+        return () => {
+          cleanupIframe?.();
+          cleanupAbandonment?.();
+        };
+      }
+    }
+  }, [user, eventKey, purchaseData]);
 
   const handleIssueIntent = async () => {
     if (!eventKey) return;
@@ -184,6 +205,7 @@ export default function PurchasePage() {
       {/* Full-screen Sprouter Embed */}
       <div className="flex-1 w-full min-h-[calc(100vh-120px)]">
         <iframe
+          ref={iframeRef}
           src={purchaseData.sprouterUrl}
           className="w-full h-full min-h-[800px]"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"

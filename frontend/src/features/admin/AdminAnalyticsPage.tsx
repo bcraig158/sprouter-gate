@@ -2,40 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
-interface LoginRecord {
-  id: string;
-  type: 'student' | 'volunteer';
-  identifier: string; // student_id or volunteer_code
-  email: string;
-  name: string;
-  timestamp: string;
-  ip_address: string;
-  user_agent: string;
-}
-
-interface ShowSelection {
-  id: string;
-  user_id: string;
-  user_type: 'student' | 'volunteer';
-  show_date: string;
-  show_time: string;
-  show_id: string;
-  tickets_requested: number;
-  tickets_purchased: number;
-  selection_timestamp: string;
-}
-
-interface PurchaseRecord {
-  id: string;
-  user_id: string;
-  user_type: 'student' | 'volunteer';
-  show_id: string;
-  tickets_purchased: number;
-  total_cost: number;
-  payment_status: 'pending' | 'completed' | 'failed';
-  purchase_timestamp: string;
-  transaction_id?: string;
-}
+// Removed unused interfaces
 
 interface AnalyticsData {
   totalLogins: number;
@@ -46,24 +13,18 @@ interface AnalyticsData {
   totalRevenue: number;
   showBreakdown: {
     [key: string]: {
-      show_date: string;
-      show_time: string;
       selections: number;
-      purchase_intents: number;
       purchases: number;
-      sprouter_successes: number;
-      revenue: number;
       conversion_rate: number;
+      revenue: number;
     };
   };
   recentActivity: Array<{
     activity_type: string;
     activity_details: string;
-    show_id?: string;
     activity_timestamp: string;
     user_id: string;
     user_type: string;
-    metadata?: any;
   }>;
   topUsers: Array<{
     user_id: string;
@@ -77,13 +38,7 @@ interface AnalyticsData {
     total_spent: number;
     last_activity: string;
   }>;
-  limitViolations: Array<{
-    user_id: string;
-    user_type: string;
-    purchase_date: string;
-    total_tickets_purchased: number;
-    limit_exceeded: boolean;
-  }>;
+  limitViolations: Array<any>;
   timeframe: string;
 }
 
@@ -139,44 +94,28 @@ export default function AdminAnalyticsPage() {
         totalRevenue: 2450.00,
         showBreakdown: {
           'tue-530': { 
-            show_date: '2025-10-28', 
-            show_time: '17:30', 
             selections: 23, 
-            purchase_intents: 20, 
             purchases: 18, 
-            sprouter_successes: 16, 
             revenue: 450.00, 
-            conversion_rate: 78.26 
+            conversion_rate: 78 
           },
           'tue-630': { 
-            show_date: '2025-10-28', 
-            show_time: '18:30', 
             selections: 28, 
-            purchase_intents: 25, 
             purchases: 22, 
-            sprouter_successes: 20, 
             revenue: 550.00, 
-            conversion_rate: 78.57 
+            conversion_rate: 79 
           },
           'thu-530': { 
-            show_date: '2025-10-30', 
-            show_time: '17:30', 
             selections: 20, 
-            purchase_intents: 18, 
             purchases: 15, 
-            sprouter_successes: 13, 
             revenue: 375.00, 
-            conversion_rate: 75.00 
+            conversion_rate: 75 
           },
           'thu-630': { 
-            show_date: '2025-10-30', 
-            show_time: '18:30', 
             selections: 18, 
-            purchase_intents: 16, 
             purchases: 12, 
-            sprouter_successes: 10, 
             revenue: 300.00, 
-            conversion_rate: 66.67 
+            conversion_rate: 67 
           }
         },
         recentActivity: [
@@ -185,8 +124,7 @@ export default function AdminAnalyticsPage() {
             activity_details: 'Student login: STU001',
             activity_timestamp: new Date().toISOString(),
             user_id: 'HH_001',
-            user_type: 'student',
-            metadata: { student_id: 'STU001', login_source: 'web' }
+            user_type: 'student'
           }
         ],
         topUsers: [
@@ -379,7 +317,10 @@ export default function AdminAnalyticsPage() {
                 {Object.entries(analyticsData.showBreakdown).map(([showId, data]) => (
                   <div key={showId} className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-semibold text-gray-800 mb-3">
-                      {data.show_date} at {data.show_time}
+                      {showId === 'tue-530' && 'Tuesday 5:30 PM'}
+                      {showId === 'tue-630' && 'Tuesday 6:30 PM'}
+                      {showId === 'thu-530' && 'Thursday 5:30 PM'}
+                      {showId === 'thu-630' && 'Thursday 6:30 PM'}
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -387,16 +328,12 @@ export default function AdminAnalyticsPage() {
                         <span className="font-semibold">{data.selections}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Purchase Intents:</span>
-                        <span className="font-semibold text-blue-600">{data.purchase_intents}</span>
+                        <span className="text-gray-600">Conversion Rate:</span>
+                        <span className="font-semibold text-blue-600">{data.conversion_rate}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Completed Purchases:</span>
                         <span className="font-semibold text-green-600">{data.purchases}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Sprouter Successes:</span>
-                        <span className="font-semibold text-purple-600">{data.sprouter_successes}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Revenue:</span>
@@ -501,7 +438,6 @@ export default function AdminAnalyticsPage() {
                         </p>
                         <p className="text-xs text-gray-500">
                           User: {activity.user_id} ({activity.user_type})
-                          {activity.show_id && ` | Show: ${activity.show_id}`}
                         </p>
                       </div>
                     </div>
@@ -712,30 +648,22 @@ export default function AdminAnalyticsPage() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Show Performance Analysis</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {Object.entries(analyticsData.showBreakdown).map(([showId, data]) => (
-                  <div key={showId} className="bg-gray-50 rounded-lg p-6">
+                {Object.entries(analyticsData.showBreakdown).map(([eventKey, data]) => (
+                  <div key={eventKey} className="bg-gray-50 rounded-lg p-6">
                     <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                      {showId === 'tue530' && 'Tuesday 5:30 PM'}
-                      {showId === 'tue630' && 'Tuesday 6:30 PM'}
-                      {showId === 'thu530' && 'Thursday 5:30 PM'}
-                      {showId === 'thu630' && 'Thursday 6:30 PM'}
+                      {eventKey === 'tue-530' && 'Tuesday 5:30 PM'}
+                      {eventKey === 'tue-630' && 'Tuesday 6:30 PM'}
+                      {eventKey === 'thu-530' && 'Thursday 5:30 PM'}
+                      {eventKey === 'thu-630' && 'Thursday 6:30 PM'}
                     </h4>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Selections</span>
+                        <span className="text-gray-600">Sprouter Embed Views</span>
                         <span className="text-2xl font-bold text-blue-600">{data.selections}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Purchase Intents</span>
-                        <span className="text-2xl font-bold text-yellow-600">{data.purchase_intents}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Completed Purchases</span>
                         <span className="text-2xl font-bold text-green-600">{data.purchases}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Sprouter Successes</span>
-                        <span className="text-2xl font-bold text-purple-600">{data.sprouter_successes}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Revenue</span>
