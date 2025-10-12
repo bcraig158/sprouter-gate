@@ -173,80 +173,128 @@ export default function VolunteerPurchasePage() {
         {/* Purchase Information */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Starstruck Presents: So You Think You Can Dance!</h2>
-            <p className="text-gray-600">📍 Maidu Elementary School, 1950 Johnson Ranch Drive, Roseville, CA 95661</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Select Your Tickets</h2>
+            <p className="text-gray-600">Show: [Date] - [Time] | Available: Up to 4 tickets</p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Ticket Summary */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-800 text-lg mb-4">Your Volunteer Tickets</h3>
+            {/* Ticket Selection */}
+            <div className="space-y-6">
+              <h3 className="font-semibold text-gray-800 text-lg mb-4">STEP 1: Choose Your Regular Tickets (2 tickets)</h3>
+              <p className="text-gray-600 text-sm mb-4">These can be Reserved Seating OR General Admission:</p>
               
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-gray-700">Base Tickets (2):</span>
-                  <span className="font-bold text-green-600">FREE</span>
+              <div className="space-y-4">
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-800">2 Reserved Seating - $50.00</h4>
+                      <p className="text-sm text-gray-600">Front 2 rows - Guaranteed seating</p>
+                    </div>
+                    <div className="w-6 h-6 border-2 border-gray-300 rounded-full"></div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-gray-700">Volunteer Bonus (2):</span>
-                  <span className="font-bold text-yellow-600">FREE</span>
+                
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-800">2 General Admission - FREE</h4>
+                      <p className="text-sm text-gray-600">Rows 3+ - First come, first served</p>
+                    </div>
+                    <div className="w-6 h-6 border-2 border-gray-300 rounded-full"></div>
+                  </div>
                 </div>
-                <div className="border-t border-green-300 pt-2 mt-2">
+              </div>
+
+              <div className="border-t-2 border-gray-200 pt-6">
+                <h3 className="font-semibold text-gray-800 text-lg mb-4">STEP 2: Add Your Volunteer Bonus Tickets (2 tickets)</h3>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-yellow-800">☑️ Add 2 General Admission Tickets - FREE</h4>
+                      <p className="text-sm text-yellow-700">Thank you for volunteering! ⭐</p>
+                    </div>
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t-2 border-gray-200 pt-6">
+                <h3 className="font-semibold text-gray-800 text-lg mb-4">YOUR TOTAL:</h3>
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-800">Total (4 tickets):</span>
-                    <span className="font-bold text-green-600 text-lg">FREE</span>
+                    <span className="font-bold text-gray-800">[X] tickets - $[XX.XX]</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selection Examples and Important Notes */}
+            <div className="space-y-6">
+              <h3 className="font-semibold text-gray-800 text-lg mb-4">Selection Examples for Users</h3>
+              
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-green-800 mb-2">EXAMPLE OPTIONS:</h4>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <h5 className="font-semibold text-gray-800 mb-1">Option A - All Free:</h5>
+                      <div className="space-y-1 text-gray-600">
+                        <p>✓ 2 General Admission (regular)</p>
+                        <p>✓ 2 General Admission (bonus)</p>
+                        <p className="font-semibold text-green-600">Total: 4 tickets - FREE</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <h5 className="font-semibold text-gray-800 mb-1">Option B - Premium Seating:</h5>
+                      <div className="space-y-1 text-gray-600">
+                        <p>✓ 2 Reserved Seating (regular) - $50</p>
+                        <p>✓ 2 General Admission (bonus) - FREE</p>
+                        <p className="font-semibold text-green-600">Total: 4 tickets - $50</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <h5 className="font-semibold text-gray-800 mb-1">Option C - Just Regular Tickets:</h5>
+                      <div className="space-y-1 text-gray-600">
+                        <p>✓ 2 General Admission (regular)</p>
+                        <p className="text-gray-400">(You can skip your bonus tickets if you don't need them)</p>
+                        <p className="font-semibold text-green-600">Total: 2 tickets - FREE</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">Optional Upgrades</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Preferred Seating (per ticket):</span>
-                    <span className="font-semibold text-purple-600">$25</span>
+                <h4 className="font-semibold text-blue-800 mb-3">📌 IMPORTANT INFORMATION:</h4>
+                <div className="space-y-2 text-sm text-gray-700">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Your 2 bonus volunteer tickets MUST be General Admission</span>
                   </div>
-                  <p className="text-xs text-gray-500">First 2 rows - upgrade available at checkout</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Event Details */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-800 text-lg mb-4">Event Details</h3>
-              
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <img 
-                    src="/EventBanner.png" 
-                    alt="So You Think You Can Dance" 
-                    className="w-16 h-10 object-cover rounded-lg shadow-md"
-                  />
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Show Performance</h4>
-                    <p className="text-sm text-gray-600">Full dance showcase</p>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600">✓</span>
+                    <span>You can choose Reserved OR GA for your 2 regular tickets</span>
                   </div>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    All dance groups performing
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Maximum 4 tickets per show</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Professional lighting & sound
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Digital tickets will be emailed to: [volunteer email]</span>
                   </div>
-                  <div className="flex items-center text-yellow-600">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                    </svg>
-                    Volunteer priority access
+                  <div className="flex items-start space-x-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Children 2 and under on lap are free (no ticket needed)</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">Refunds available until 2 days before the show.</p>
                 </div>
               </div>
             </div>

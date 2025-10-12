@@ -194,8 +194,8 @@ export default function VolunteerLoginPage() {
                   <span>Don't have your volunteer code?</span>
                 </span>
                 <br />
-                <a href="#" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-                  Contact the event coordinator
+                <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
+                  Contact Lauren at maiduelementaryptc@gmail.com
                 </a>
               </p>
             </div>

@@ -161,26 +161,59 @@ export default function VolunteerSelectPage() {
           </button>
           
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-            Volunteer Portal
+            Select Your Show Times 🎭
           </h1>
-          <p className="text-gray-600 text-lg">Select your show time with volunteer benefits</p>
+          <p className="text-gray-600 text-lg">Choose when you want to WATCH the show with your family.<br />(Not when you're volunteering!)</p>
         </div>
 
-        {/* Volunteer Benefits Banner */}
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl shadow-xl p-6 mb-8 text-white">
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-              </svg>
+        {/* Main Instructions Box */}
+        <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-2xl p-6 mb-8">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">HOW TO SELECT YOUR TICKETS:</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-gray-700 font-medium">Choose ONE show per night (either 5:30 PM OR 6:30 PM)</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-gray-700 font-medium">You can attend shows on one night or both nights</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-gray-700 font-medium">You'll select your tickets (up to 4) at checkout</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-gray-700 font-medium">DO NOT select the show you're volunteering for - you'll be working!</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-lg mb-1">⭐ Volunteer Benefits Active</h3>
-              <p className="text-yellow-50 text-sm mb-2">
-                You have access to {state.allowance.totalAllowance} tickets per night (includes +2 volunteer bonus)
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <h3 className="font-bold text-yellow-800 mb-2">YOUR VOLUNTEER SHIFT:</h3>
+              <p className="text-yellow-700 text-sm mb-2">
+                {/* This would be populated from the volunteer's shift data */}
+                Tuesday, October 28 - 5:30 PM (Example)
               </p>
-              <p className="text-yellow-100 text-xs">
-                Thank you for volunteering! Your extra tickets will be available at checkout.
+              <p className="text-yellow-600 text-xs">
+                Select different show times to watch.
               </p>
             </div>
           </div>
@@ -260,7 +293,7 @@ export default function VolunteerSelectPage() {
           {/* Tuesday Events */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-              Tuesday, October 28, 2025
+              TUESDAY, OCTOBER 28, 2025
             </h2>
             
             {/* Tuesday Performance Schedule */}
@@ -389,7 +422,7 @@ export default function VolunteerSelectPage() {
           {/* Thursday Events */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-              Thursday, October 30, 2025
+              THURSDAY, OCTOBER 30, 2025
             </h2>
             
             {/* Thursday Performance Schedule */}
@@ -537,17 +570,200 @@ export default function VolunteerSelectPage() {
           )}
         </div>
 
-        {/* Help Section */}
-        <div className="max-w-2xl mx-auto mt-12 bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-          <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-            <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+        {/* Comprehensive Q&A Section */}
+        <div className="max-w-4xl mx-auto mt-12 bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
+          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center flex items-center justify-center">
+            <svg className="w-6 h-6 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
-            Volunteer Support
+            📋 COMPLETE Q&A - VOLUNTEER TICKETS
           </h3>
-          <p className="text-gray-600 text-sm leading-relaxed">
-            Need help with your volunteer tickets? Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call during business hours. Thank you for volunteering!
-          </p>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* BASICS Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-blue-800 border-b-2 border-blue-200 pb-2">BASICS</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: I'm volunteering - do I get tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Yes! As a thank you, you can reserve up to 4 tickets per show to WATCH with your family (not for the show you're working).</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Do I need a ticket for the show I'm volunteering at?</p>
+                  <p className="text-gray-600 text-sm">A: No! You'll be working during that show, so you don't need tickets for it. Your tickets are for OTHER shows you want to watch.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: How many tickets do I get?</p>
+                  <p className="text-gray-600 text-sm">A: You can get up to 4 tickets per show you attend:<br/>• 2 regular tickets (Reserved or GA)<br/>• 2 bonus volunteer tickets (GA only)</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I attend multiple shows?</p>
+                  <p className="text-gray-600 text-sm">A: Yes! You can select one show per night:<br/>• One show on October 28 (either 5:30 PM OR 6:30 PM)<br/>• One show on October 30 (either 5:30 PM OR 6:30 PM)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* TICKET SELECTION Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-green-800 border-b-2 border-green-200 pb-2">TICKET SELECTION</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What's the difference between my "regular" and "bonus" tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Regular tickets (2): Can be Reserved Seating ($25) or General Admission (FREE)<br/>Bonus tickets (2): Must be General Admission (FREE) - this is your volunteer thank you!</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What are my ticket options?</p>
+                  <p className="text-gray-600 text-sm">A: You have two options at checkout:<br/>• All Free: 4 General Admission tickets (FREE)<br/>• Mixed: 2 Reserved Seats ($25 each) + 2 General Admission (FREE)</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I get 4 reserved seats?</p>
+                  <p className="text-gray-600 text-sm">A: No. Your 2 bonus volunteer tickets must be General Admission. You can only purchase up to 2 reserved seats (using your regular ticket allocation).</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What if I only need 2 tickets?</p>
+                  <p className="text-gray-600 text-sm">A: That's fine! You can choose to use just your 2 regular tickets and skip the bonus tickets if you don't need them.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* SHOW SELECTION Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-purple-800 border-b-2 border-purple-200 pb-2">SHOW SELECTION</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I attend both shows on the same night?</p>
+                  <p className="text-gray-600 text-sm">A: No. Just like regular families, you can only select ONE show per night (either 5:30 PM OR 6:30 PM).</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I attend shows on both October 28 AND October 30?</p>
+                  <p className="text-gray-600 text-sm">A: Yes! You can select:<br/>• One show on October 28 (up to 4 tickets)<br/>• One show on October 30 (up to 4 tickets)<br/>Total: Up to 8 tickets across both nights</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What if my volunteer shift is Tuesday 5:30 PM?</p>
+                  <p className="text-gray-600 text-sm">A: You can attend:<br/>• Tuesday 6:30 PM (up to 4 tickets), OR<br/>• Thursday 5:30 PM (up to 4 tickets), OR<br/>• Thursday 6:30 PM (up to 4 tickets)<br/>Or shows on both nights!</p>
+                </div>
+              </div>
+            </div>
+
+            {/* LOGIN & ACCESS Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-orange-800 border-b-2 border-orange-200 pb-2">LOGIN & ACCESS</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: How do I access my volunteer tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Check your email for your 6-digit volunteer code, go to the volunteer portal, enter your code and email address, then select your show(s) and tickets.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What if I forgot my volunteer code?</p>
+                  <p className="text-gray-600 text-sm">A: Contact Lauren at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> and she'll resend it.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can someone else use my volunteer code?</p>
+                  <p className="text-gray-600 text-sm">A: No. Each code is unique to one volunteer and can only be used with the registered email address.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: My code isn't working - what should I do?</p>
+                  <p className="text-gray-600 text-sm">A: Make sure you're entering all 6 digits correctly and using the email address you registered with. If issues persist, contact Lauren.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* CHECKOUT & PAYMENT Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-red-800 border-b-2 border-red-200 pb-2">CHECKOUT & PAYMENT</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: How much do I pay?</p>
+                  <p className="text-gray-600 text-sm">A: It depends on your ticket selection:<br/>• 4 GA tickets: FREE ($0)<br/>• 2 Reserved + 2 GA: $50 ($25 × 2 reserved seats)</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Do I pay separately for each show?</p>
+                  <p className="text-gray-600 text-sm">A: Yes. If you're attending shows on both October 28 and October 30, you'll complete separate checkouts for each night.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I get a refund?</p>
+                  <p className="text-gray-600 text-sm">A: Yes, refunds are available up to 2 days (48 hours) before each show. After that, no refunds.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: When will I receive my tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Digital tickets will be emailed to you immediately after checkout. Show them on your phone at the door.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* FAMILY & CHILDREN Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-indigo-800 border-b-2 border-indigo-200 pb-2">FAMILY & CHILDREN</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Do my young children need tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Children 2 and under who sit on a lap don't need tickets. Everyone else (age 3+) needs a ticket.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: I have 5 family members - can I get more than 4 tickets?</p>
+                  <p className="text-gray-600 text-sm">A: Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact Lauren to discuss options, subject to availability.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I bring guests who aren't family?</p>
+                  <p className="text-gray-600 text-sm">A: Yes! Your tickets can be used by anyone you choose.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* VOLUNTEER DUTIES Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-teal-800 border-b-2 border-teal-200 pb-2">VOLUNTEER DUTIES</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: When is my volunteer shift?</p>
+                  <p className="text-gray-600 text-sm">A: Check your volunteer confirmation email for your specific shift date and time. You'll receive separate instructions about your volunteer duties.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: What will I be doing as a volunteer?</p>
+                  <p className="text-gray-600 text-sm">A: You'll be helping in classrooms with students during the show. Lauren Deary will send detailed instructions closer to the event.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I watch part of the show I'm volunteering for?</p>
+                  <p className="text-gray-600 text-sm">A: Your volunteer assignment will keep you busy during that show. Use your tickets to watch a different show time!</p>
+                </div>
+              </div>
+            </div>
+
+            {/* TECHNICAL QUESTIONS Section */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-pink-800 border-b-2 border-pink-200 pb-2">TECHNICAL QUESTIONS</h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I purchase tickets on my phone?</p>
+                  <p className="text-gray-600 text-sm">A: Yes! The volunteer portal works on all devices - phones, tablets, and computers.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: I'm having trouble with checkout - help!</p>
+                  <p className="text-gray-600 text-sm">A: Try refreshing the page, using a different browser, checking your internet connection, or contacting Lauren at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a>.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Q: Can I change my ticket selection after purchase?</p>
+                  <p className="text-gray-600 text-sm">A: Refunds are available up to 48 hours before the show. For changes, you'll need to request a refund and make a new purchase (subject to availability).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="mt-8 pt-6 border-t-2 border-gray-200 text-center">
+            <p className="text-gray-600 text-sm">
+              <span className="inline-flex items-center space-x-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span>Still have questions?</span>
+              </span>
+              <br />
+              <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
+                Contact Lauren at maiduelementaryptc@gmail.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
 
