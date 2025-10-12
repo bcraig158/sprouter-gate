@@ -5,7 +5,6 @@ import LoginPage from './features/auth/LoginPage';
 import SelectPage from './features/select/SelectPage';
 import VolunteerSelectPage from './features/select/VolunteerSelectPage';
 import PurchasePage from './features/purchase/PurchasePage';
-import VolunteerPurchasePage from './features/purchase/VolunteerPurchasePage';
 import StatusPage from './features/status/StatusPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -38,12 +37,6 @@ function App() {
           <Route path="/purchase/:eventKey" element={
             <ProtectedRoute>
               <PurchasePage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/volunteer-purchase/:eventKey" element={
-            <ProtectedRoute>
-              <VolunteerPurchasePage />
             </ProtectedRoute>
           } />
           

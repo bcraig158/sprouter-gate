@@ -87,7 +87,7 @@ export default function VolunteerSelectPage() {
     try {
       if (import.meta.env.PROD) {
         // Production mode - skip API call and go directly to purchase
-        navigate(`/volunteer-purchase/${eventKey}`);
+        navigate(`/purchase/${eventKey}`);
       } else {
         // Development mode - use API
         await api.post('/select-slot', {
@@ -100,7 +100,7 @@ export default function VolunteerSelectPage() {
         await fetchState();
         
         // Navigate to purchase page
-        navigate(`/volunteer-purchase/${eventKey}`);
+        navigate(`/purchase/${eventKey}`);
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to select slot');
