@@ -67,8 +67,8 @@ exports.handler = async (event, context) => {
           timeFilterSQL = `WHERE login_timestamp >= '${timeFilter.toISOString()}'`;
         }
         
-        // Get login data from database
-        const logins = await new Promise((resolve, reject) => {
+        // Get login data from database (existing data)
+        const dbLogins = await new Promise((resolve, reject) => {
           const query = `SELECT * FROM user_logins ${timeFilterSQL} ORDER BY login_timestamp DESC`;
           db.all(query, [], (err, rows) => {
             if (err) reject(err);
@@ -76,7 +76,34 @@ exports.handler = async (event, context) => {
           });
         });
         
-        console.log(`📊 Analytics: Found ${logins.length} logins for timeframe ${timeframe}`);
+        // Get login data from secureStorage (new data)
+        let fileLogins = [];
+        try {
+          const secureStorage = require('./secureStorage');
+          const fileData = await secureStorage.getAnalytics();
+          if (fileData && fileData.userLogins) {
+            fileLogins = fileData.userLogins;
+            console.log(`📊 File storage: Found ${fileLogins.length} additional logins`);
+          }
+        } catch (error) {
+          console.log('📊 File storage: No additional data found');
+        }
+        
+        // Merge and deduplicate logins
+        const allLogins = [...dbLogins, ...fileLogins];
+        const uniqueLogins = allLogins.filter((login, index, self) => 
+          index === self.findIndex(l => 
+            l.user_id === login.user_id && 
+            l.login_timestamp === login.login_timestamp
+          )
+        );
+        
+        // Sort by timestamp
+        const logins = uniqueLogins.sort((a, b) => 
+          new Date(b.login_timestamp) - new Date(a.login_timestamp)
+        );
+        
+        console.log(`📊 Analytics: Found ${logins.length} total logins (${dbLogins.length} from DB, ${fileLogins.length} from file) for timeframe ${timeframe}`);
         
         // Calculate metrics
         const totalLogins = logins.length;

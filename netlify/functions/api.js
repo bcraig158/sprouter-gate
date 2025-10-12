@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd
 
 // Force redeploy - function updated
 
-// Database helper function
+// Database helper function (for existing data)
 async function storeLoginInDatabase(loginData) {
   return new Promise((resolve, reject) => {
     const dbPath = path.join(__dirname, 'backend/data/sprouter_events.db');
@@ -48,6 +48,18 @@ async function storeLoginInDatabase(loginData) {
       }
     });
   });
+}
+
+// File-based storage for new logins (production-safe)
+async function storeLoginInFile(loginData) {
+  try {
+    const result = await secureStorage.storeLogin(loginData);
+    console.log(`✅ Login stored in file storage: ${loginData.user_type} - ${loginData.identifier}`);
+    return result;
+  } catch (error) {
+    console.error('File storage error:', error);
+    throw error;
+  }
 }
 
 // In-memory data for production (serverless-friendly)
@@ -770,11 +782,8 @@ exports.handler = async (event, context) => {
         domain: headers.host || 'unknown'
       };
       
-      // Store in database
-      await storeLoginInDatabase(loginData);
-      
-      // Also store in secure file storage for backup
-      await secureStorage.storeLogin(loginData);
+      // Store in file storage (production-safe)
+      await storeLoginInFile(loginData);
       
       // Update local cache
       const sanitizedData = secureStorage.sanitizeLoginData(loginData);
@@ -852,11 +861,8 @@ exports.handler = async (event, context) => {
         domain: headers.host || 'unknown'
       };
       
-      // Store in database
-      await storeLoginInDatabase(loginData);
-      
-      // Also store in secure file storage for backup
-      await secureStorage.storeLogin(loginData);
+      // Store in file storage (production-safe)
+      await storeLoginInFile(loginData);
       
       // Update local cache
       const sanitizedData = secureStorage.sanitizeLoginData(loginData);
@@ -1175,4 +1181,5 @@ async function storeEventInDatabase(eventData) {
 
 // Export the storeLoginInDatabase function for testing
 module.exports.storeLoginInDatabase = storeLoginInDatabase;
+module.exports.storeLoginInFile = storeLoginInFile;
 module.exports.storeEventInDatabase = storeEventInDatabase;
