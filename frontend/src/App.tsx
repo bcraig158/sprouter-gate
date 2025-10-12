@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 import LoginPage from './features/auth/LoginPage';
-import VolunteerLoginPage from './features/auth/VolunteerLoginPage';
 import SelectPage from './features/select/SelectPage';
 import VolunteerSelectPage from './features/select/VolunteerSelectPage';
 import PurchasePage from './features/purchase/PurchasePage';
@@ -17,7 +16,6 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/volunteer-login" element={<VolunteerLoginPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           
           {/* Protected routes with Layout */}
