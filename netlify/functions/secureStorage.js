@@ -591,6 +591,7 @@ class SecureStorage {
       showSelections: [],
       purchases: [],
       sessions: {},
+      activities: [],
       metadata: {
         lastUpdated: new Date().toISOString(),
         version: '2.0',

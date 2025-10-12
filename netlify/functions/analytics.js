@@ -1,6 +1,5 @@
-// Analytics API for Netlify Functions - Reads from SQLite database
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+// Analytics API for Netlify Functions - Reads from file-based storage
+const secureStorage = require('./secureStorage');
 
 exports.handler = async (event, context) => {
   try {
@@ -37,11 +36,8 @@ exports.handler = async (event, context) => {
       const { timeframe = 'all' } = event.queryStringParameters || {};
       
       try {
-        // Path to the SQLite database
-        const dbPath = path.join(__dirname, 'backend/data/sprouter_events.db');
-        
-        // Connect to database
-        const db = new sqlite3.Database(dbPath);
+        // Get data from secure file storage
+        const data = await secureStorage.getAnalytics();
         
         // Calculate time-based filtering
         const now = new Date();
@@ -61,49 +57,20 @@ exports.handler = async (event, context) => {
             timeFilter = null;
         }
         
-        // Build time filter SQL
-        let timeFilterSQL = '';
+        // Filter logins by timeframe
+        let logins = data.userLogins || [];
         if (timeFilter) {
-          timeFilterSQL = `WHERE login_timestamp >= '${timeFilter.toISOString()}'`;
+          logins = logins.filter(login => 
+            new Date(login.login_timestamp) >= timeFilter
+          );
         }
         
-        // Get login data from database (existing data)
-        const dbLogins = await new Promise((resolve, reject) => {
-          const query = `SELECT * FROM user_logins ${timeFilterSQL} ORDER BY login_timestamp DESC`;
-          db.all(query, [], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-          });
-        });
-        
-        // Get login data from secureStorage (new data)
-        let fileLogins = [];
-        try {
-          const secureStorage = require('./secureStorage');
-          const fileData = await secureStorage.getAnalytics();
-          if (fileData && fileData.userLogins) {
-            fileLogins = fileData.userLogins;
-            console.log(`📊 File storage: Found ${fileLogins.length} additional logins`);
-          }
-        } catch (error) {
-          console.log('📊 File storage: No additional data found');
-        }
-        
-        // Merge and deduplicate logins
-        const allLogins = [...dbLogins, ...fileLogins];
-        const uniqueLogins = allLogins.filter((login, index, self) => 
-          index === self.findIndex(l => 
-            l.user_id === login.user_id && 
-            l.login_timestamp === login.login_timestamp
-          )
-        );
-        
-        // Sort by timestamp
-        const logins = uniqueLogins.sort((a, b) => 
+        // Sort by timestamp (most recent first)
+        logins = logins.sort((a, b) => 
           new Date(b.login_timestamp) - new Date(a.login_timestamp)
         );
         
-        console.log(`📊 Analytics: Found ${logins.length} total logins (${dbLogins.length} from DB, ${fileLogins.length} from file) for timeframe ${timeframe}`);
+        console.log(`📊 Analytics: Found ${logins.length} logins for timeframe ${timeframe}`);
         
         // Calculate metrics
         const totalLogins = logins.length;
@@ -129,73 +96,56 @@ exports.handler = async (event, context) => {
         
         // Get active users list
         const activeUsersList = activeUsers
-          .map(user => ({
-            user_id: user.user_id,
-            user_type: user.user_type,
-            identifier: user.identifier,
-            login_timestamp: user.login_timestamp,
-            time_ago: Math.floor((now - new Date(user.login_timestamp)) / (1000 * 60)) // minutes ago
-          }));
+          .map(login => ({
+            user_id: login.user_id,
+            user_type: login.user_type,
+            identifier: login.identifier,
+            login_timestamp: login.login_timestamp,
+            time_ago: Math.floor((now - new Date(login.login_timestamp)) / (1000 * 60)) // minutes ago
+          }))
+          .slice(0, 10);
         
-        // Get show selections and purchases data
-        const showSelections = await new Promise((resolve, reject) => {
-          const query = `SELECT * FROM show_selections ${timeFilterSQL.replace('login_timestamp', 'selection_timestamp')} ORDER BY selection_timestamp DESC`;
-          db.all(query, [], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-          });
-        });
+        // Get show selections and purchases
+        const showSelections = data.showSelections || [];
+        const purchases = data.purchases || [];
         
-        const purchases = await new Promise((resolve, reject) => {
-          const query = `SELECT * FROM purchases ${timeFilterSQL.replace('login_timestamp', 'purchase_timestamp')} ORDER BY purchase_timestamp DESC`;
-          db.all(query, [], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-          });
-        });
-        
-        // Filter show selections by timeframe
+        // Filter by timeframe if needed
         let filteredSelections = showSelections;
-        if (timeFilter) {
-          filteredSelections = showSelections.filter(selection => {
-            const selectionTime = new Date(selection.selection_timestamp);
-            return selectionTime >= timeFilter;
-          });
-        }
-        
-        // Filter purchases by timeframe
         let filteredPurchases = purchases;
+        
         if (timeFilter) {
-          filteredPurchases = purchases.filter(purchase => {
-            const purchaseTime = new Date(purchase.purchase_timestamp);
-            return purchaseTime >= timeFilter;
-          });
+          filteredSelections = showSelections.filter(selection => 
+            new Date(selection.timestamp) >= timeFilter
+          );
+          filteredPurchases = purchases.filter(purchase => 
+            new Date(purchase.timestamp) >= timeFilter
+          );
         }
         
-        // Calculate show breakdown from actual data
+        // Calculate show breakdown
         const showBreakdown = {
           'tue-530': { 
-            selections: filteredSelections.filter(s => s.show_id?.includes('tue-530')).length,
-            purchases: filteredPurchases.filter(p => p.show_id?.includes('tue-530')).length,
-            revenue: filteredPurchases.filter(p => p.show_id?.includes('tue-530')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.event_key === 'tue-530').length,
+            purchases: filteredPurchases.filter(p => p.event_key === 'tue-530').length,
+            revenue: filteredPurchases.filter(p => p.event_key === 'tue-530').reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
             conversion_rate: 0
           },
           'tue-630': { 
-            selections: filteredSelections.filter(s => s.show_id?.includes('tue-630')).length,
-            purchases: filteredPurchases.filter(p => p.show_id?.includes('tue-630')).length,
-            revenue: filteredPurchases.filter(p => p.show_id?.includes('tue-630')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.event_key === 'tue-630').length,
+            purchases: filteredPurchases.filter(p => p.event_key === 'tue-630').length,
+            revenue: filteredPurchases.filter(p => p.event_key === 'tue-630').reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
             conversion_rate: 0
           },
           'thu-530': { 
-            selections: filteredSelections.filter(s => s.show_id?.includes('thu-530')).length,
-            purchases: filteredPurchases.filter(p => p.show_id?.includes('thu-530')).length,
-            revenue: filteredPurchases.filter(p => p.show_id?.includes('thu-530')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.event_key === 'thu-530').length,
+            purchases: filteredPurchases.filter(p => p.event_key === 'thu-530').length,
+            revenue: filteredPurchases.filter(p => p.event_key === 'thu-530').reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
             conversion_rate: 0
           },
           'thu-630': { 
-            selections: filteredSelections.filter(s => s.show_id?.includes('thu-630')).length,
-            purchases: filteredPurchases.filter(p => p.show_id?.includes('thu-630')).length,
-            revenue: filteredPurchases.filter(p => p.show_id?.includes('thu-630')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.event_key === 'thu-630').length,
+            purchases: filteredPurchases.filter(p => p.event_key === 'thu-630').length,
+            revenue: filteredPurchases.filter(p => p.event_key === 'thu-630').reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
             conversion_rate: 0
           }
         };
@@ -207,6 +157,13 @@ exports.handler = async (event, context) => {
             show.conversion_rate = Math.round((show.purchases / show.selections) * 100);
           }
         });
+        
+        // Calculate totals
+        const totalShowSelections = filteredSelections.length;
+        const totalPurchases = filteredPurchases.length;
+        const totalRevenue = filteredPurchases.reduce((sum, purchase) => 
+          sum + (purchase.metadata?.total_cost || 0), 0
+        );
         
         // Get top users
         const userStats = {};
@@ -227,19 +184,26 @@ exports.handler = async (event, context) => {
           }
         });
         
+        // Add activity data to user stats
+        filteredSelections.forEach(selection => {
+          if (userStats[selection.user_id]) {
+            userStats[selection.user_id].total_selections++;
+          }
+        });
+        
+        filteredPurchases.forEach(purchase => {
+          if (userStats[purchase.user_id]) {
+            userStats[purchase.user_id].total_purchases++;
+            userStats[purchase.user_id].total_spent += purchase.metadata?.total_cost || 0;
+          }
+        });
+        
         const topUsers = Object.values(userStats)
-          .sort((a, b) => new Date(b.last_activity) - new Date(a.last_activity))
-          .slice(0, 20);
+          .sort((a, b) => b.total_spent - a.total_spent)
+          .slice(0, 10);
         
-        // Calculate totals from actual data
-        const totalShowSelections = filteredSelections.length;
-        const totalPurchases = filteredPurchases.length;
-        const totalRevenue = filteredPurchases.reduce((sum, purchase) => sum + (purchase.total_cost || 0), 0);
-        
-        // Close database connection
-        db.close();
-        
-        const response = {
+        // Return analytics data
+        const analyticsData = {
           totalLogins,
           studentLogins,
           volunteerLogins,
@@ -253,14 +217,14 @@ exports.handler = async (event, context) => {
           showBreakdown,
           recentActivity,
           topUsers,
-          limitViolations: [],
+          limitViolations: [], // Not implemented yet
           timeframe
         };
         
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify(response)
+          body: JSON.stringify(analyticsData)
         };
         
       } catch (error) {
@@ -269,7 +233,7 @@ exports.handler = async (event, context) => {
           statusCode: 500,
           headers: corsHeaders,
           body: JSON.stringify({ 
-            error: 'Failed to load analytics data',
+            error: 'Failed to retrieve analytics data',
             details: error.message 
           })
         };
@@ -280,7 +244,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 404,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Analytics endpoint not found' })
+      body: JSON.stringify({ error: 'Not found' })
     };
     
   } catch (error) {
