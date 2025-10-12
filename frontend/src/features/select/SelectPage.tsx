@@ -38,6 +38,35 @@ interface StateResponse {
   availableEvents: Event[];
 }
 
+// FAQ Item Component
+const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border border-gray-200 rounded-lg">
+      <button
+        className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="font-medium text-gray-800">{question}</span>
+        <svg
+          className={`w-5 h-5 text-gray-500 transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-3 text-gray-600 text-sm leading-relaxed">
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function SelectPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -512,6 +541,146 @@ export default function SelectPage() {
               Please select a show time to continue
             </p>
           )}
+        </div>
+
+        {/* Q&A Section */}
+        <div className="max-w-4xl mx-auto mt-12">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Frequently Asked Questions</h2>
+              <p className="text-gray-600">Everything you need to know about purchasing tickets</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Q&A Categories */}
+              <div className="grid md:grid-cols-2 gap-6">
+                
+                {/* Basics & Rules */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Basics & Rules</h3>
+                  
+                  <FAQItem 
+                    question="How do I purchase tickets?"
+                    answer="Log in at maidutickets.com using your student's ID number. After logging in, select your preferred show time(s) and complete checkout."
+                  />
+                  
+                  <FAQItem 
+                    question="How many tickets can I purchase?"
+                    answer="You can purchase up to 2 tickets per night. If you want to attend both October 28 and October 30, you can purchase 2 tickets for each night (4 tickets total across both dates)."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I select both the 5:30 PM and 6:30 PM shows on the same night?"
+                    answer="No. You must choose ONE show time per night (either 5:30 PM OR 6:30 PM). This ensures more families can attend."
+                  />
+                  
+                  <FAQItem 
+                    question="What happens if I try to purchase more than 2 tickets per night?"
+                    answer="Purchases exceeding the 2-ticket limit per night will be automatically canceled and you will be notified. Please only purchase within your allowance."
+                  />
+                </div>
+
+                {/* Ticket Options & Pricing */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Ticket Options & Pricing</h3>
+                  
+                  <FAQItem 
+                    question="What types of tickets are available?"
+                    answer="There are two ticket types: General Admission - FREE (first come, first served seating starting at Row 3), and Reserved Seating - $25 per ticket (guaranteed seats in the first 2 rows)."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I purchase 1 Reserved and 1 General Admission ticket?"
+                    answer="At checkout, you'll select your ticket type. You can choose: 2 General Admission tickets (FREE), OR 2 Reserved Seating tickets ($50 total)."
+                  />
+                  
+                  <FAQItem 
+                    question="Is there a limit on Reserved Seating tickets?"
+                    answer="Yes, Reserved Seating is limited to 48 tickets per show (first 2 rows only). These seats sell out quickly, so purchase early if you want guaranteed front-row seating."
+                  />
+                  
+                  <FAQItem 
+                    question="How much will my tickets cost?"
+                    answer="General Admission: FREE (0 tickets = $0, 2 tickets = $0). Reserved Seating: $25 per ticket (2 tickets = $50)."
+                  />
+                </div>
+
+                {/* Student ID & Verification */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Student ID & Verification</h3>
+                  
+                  <FAQItem 
+                    question="Where do I find my student's ID number?"
+                    answer="Your student's ID number should be available through your school portal, report cards, or by contacting the school office. You can also email maiduelementaryptc@gmail.com if you need help locating it."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I use my student ID for both October 28 and October 30?"
+                    answer="Yes! Your student ID can be used to purchase tickets for both nights. However, each ID is limited to 2 tickets per night."
+                  />
+                  
+                  <FAQItem 
+                    question="What if I have multiple children at Maidu Elementary?"
+                    answer="You can use any of your children's student IDs to purchase tickets. Each student ID allows for 2 tickets per night."
+                  />
+                  
+                  <FAQItem 
+                    question="My student ID isn't working - what should I do?"
+                    answer="Make sure you're entering the ID correctly. If you continue to have issues, contact maiduelementaryptc@gmail.com or call 916-749-0848 for assistance."
+                  />
+                </div>
+
+                {/* Additional Tickets & Important Dates */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Additional Tickets & Dates</h3>
+                  
+                  <FAQItem 
+                    question="When can I purchase additional tickets?"
+                    answer="Starting October 20th, families can purchase up to 4 additional tickets per night while supplies last. Initial purchase (Oct 13-19): Up to 2 tickets per night. Maximum total: 6 tickets per night if you purchase during both phases."
+                  />
+                  
+                  <FAQItem 
+                    question="When are ticket sales open?"
+                    answer="Ticket sales open on October 13, 2025. Additional tickets will be released on October 20, 2025. October 28 shows: Sales close at 4:00 PM on October 28. October 30 shows: Sales close at 4:00 PM on October 30."
+                  />
+                  
+                  <FAQItem 
+                    question="Do all my children need tickets?"
+                    answer="Children age 3 and older need tickets. Children 2 and under who sit on a lap do not need a ticket."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I get a refund?"
+                    answer="Yes, refunds are available up to 2 days (48 hours) before the show. After that, no refunds will be issued. Contact maiduelementaryptc@gmail.com or call 916-749-0848 to request a refund."
+                  />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  Still have questions?
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
+                    <p className="text-gray-600">📧 <a href="mailto:maiduelementaryptc@gmail.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a></p>
+                    <p className="text-gray-600">📞 916-749-0848</p>
+                    <p className="text-gray-600">👥 Lauren McGhee or Lauren Deary</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-700 mb-2">Event Location:</p>
+                    <p className="text-gray-600">📍 Maidu Elementary School</p>
+                    <p className="text-gray-600">1950 Johnson Ranch Drive</p>
+                    <p className="text-gray-600">Roseville, CA 95661</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Help Section */}
