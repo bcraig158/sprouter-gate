@@ -11,10 +11,10 @@ export interface SprouterConfig {
 }
 
 export const sprouterConfig: SprouterConfig = {
-  tue530: process.env.SPROUTER_TUE_530_URL || 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTZmNGVjMmI4OWM4ZjcxYjhiN2UwYzl5eWVrMzUxcw==',
-  tue630: process.env.SPROUTER_TUE_630_URL || 'https://events.sprouter.online/events/MTAvMjhALTY6MzBALXBtQC18QC1zb0AteW91QC10aGlua0AteW91QC1jYW5ALWRhbmNlIUAtNjY1M2NjNjZjZmNiOWRjYTEzNGJhZnl5ZWszNTZz',
-  thu530: process.env.SPROUTER_THU_530_URL || 'https://events.sprouter.online/events/MTAvMzBALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTAwYzQ5NDQ2ZjBjZGI4MGExMmQ4YWV5eWVrMzU3cw==',
-  thu630: process.env.SPROUTER_THU_630_URL || 'https://events.sprouter.online/events/MTAvMzBALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTE4ZjM4MWM0M2Y0ODU5YjQzZmVjMWN5eWVrMzU4cw==',
+  tue530: process.env.SPROUTER_TUE_530_URL || 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTYxNzc3NjNjNzFlNGM5ZDI5MTliYTZ5eWVrMzcwcw==',
+  tue630: process.env.SPROUTER_TUE_630_URL || 'https://events.sprouter.online/events/MTAvMjhALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALWJmMjE4YjRlY2YzYTM2NzczNTYxMjV5eWVrMzcxcw==',
+  thu530: process.env.SPROUTER_THU_530_URL || 'https://events.sprouter.online/events/MTAvMzBALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTI0ZTQ1NDkxYTg4MjQ2NWU0MjhjZjl5eWVrMzcycw==',
+  thu630: process.env.SPROUTER_THU_630_URL || 'https://events.sprouter.online/events/MTAvMzBALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALWFjODE2ZGUxNDczN2QyNmEyYTRhMGV5eWVrMzczcw==',
 };
 
 export function getSprouterUrl(eventKey: string): string {
