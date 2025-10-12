@@ -348,8 +348,10 @@ exports.handler = async (event, context) => {
       
       let volunteerCodes = [];
       try {
+        console.log('Looking for volunteer codes at:', volunteerCodesPath);
         if (fs.existsSync(volunteerCodesPath)) {
           volunteerCodes = JSON.parse(fs.readFileSync(volunteerCodesPath, 'utf-8'));
+          console.log('Loaded volunteer codes:', volunteerCodes.length, 'volunteers');
         } else {
           console.error('Volunteer codes file not found at:', volunteerCodesPath);
         }
