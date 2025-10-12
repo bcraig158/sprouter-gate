@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -7,8 +7,17 @@ export default function VolunteerLoginPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { volunteerLogin } = useAuth();
+  const { volunteerLogin, user } = useAuth();
   const navigate = useNavigate();
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (user && user.isAdmin) {
+      navigate('/admin-analytics');
+    } else if (user && user.isVolunteer) {
+      navigate('/volunteer-select');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,18 +26,10 @@ export default function VolunteerLoginPage() {
 
     try {
       const success = await volunteerLogin(volunteerCode, email);
-      if (success) {
-        // Check if this is an admin login by checking the user context
-        // The useAuth hook will set isAdmin: true for admin users
-        const isAdmin = volunteerCode === '339933' && email.toLowerCase() === 'admin@maidu.com';
-        if (isAdmin) {
-          navigate('/admin-analytics');
-        } else {
-          navigate('/volunteer-select');
-        }
-      } else {
+      if (!success) {
         setError('Invalid volunteer code or email. Please try again.');
       }
+      // Redirect is handled by useEffect when user state updates
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
