@@ -48,34 +48,47 @@ interface AnalyticsData {
     eventInteractions: { [eventKey: string]: any };
     userEventPatterns: { [userId: string]: any };
     checkoutAttempts: { [userId: string]: any };
-    summary: {
-      totalUniqueUsers: number;
-      totalLogins: number;
-      averageLoginsPerUser: number;
-      mostActiveUsers: Array<[string, any]>;
-      domainBreakdown: Array<{ domain: string; totalLogins: number; uniqueUsers: number }>;
-      peakHours: Array<[string, number]>;
-      eventEngagement: Array<{ eventKey: string; totalViews: number; uniqueUsers: number; averageViewsPerUser: number }>;
-      sameNightCheckouts: Array<{ userId: string; sameNightDates: string[]; totalSameNightAttempts: number }>;
-      checkoutAnalytics?: {
-        totalCheckoutAttempts: number;
-        totalSuccessfulPurchases: number;
-        totalTicketQuantities: number[];
-        totalRevenue: number;
-        averageTicketQuantity: number;
-        checkoutFormAnalysis: {
-          totalForms: number;
-          formsWithPayment: number;
-          formsWithQuantity: number;
+      summary: {
+        totalUniqueUsers: number;
+        totalLogins: number;
+        averageLoginsPerUser: number;
+        mostActiveUsers: Array<[string, any]>;
+        domainBreakdown: Array<{ domain: string; totalLogins: number; uniqueUsers: number }>;
+        peakHours: Array<[string, number]>;
+        eventEngagement: Array<{ eventKey: string; totalViews: number; uniqueUsers: number; averageViewsPerUser: number }>;
+        sameNightCheckouts: Array<{ userId: string; sameNightDates: string[]; totalSameNightAttempts: number }>;
+        checkoutAnalytics?: {
+          totalCheckoutAttempts: number;
+          totalSuccessfulPurchases: number;
+          totalTicketQuantities: number[];
+          totalRevenue: number;
+          averageTicketQuantity: number;
+          checkoutFormAnalysis: {
+            totalForms: number;
+            formsWithPayment: number;
+            formsWithQuantity: number;
+          };
+          paymentMethodBreakdown: { [method: string]: number };
+          eventCheckoutPatterns: { [eventKey: string]: any };
+          userCheckoutBehavior: { [userId: string]: any };
+          iframeNavigationPatterns: { [url: string]: number };
+          successRate: number;
+          abandonmentRate: number;
         };
-        paymentMethodBreakdown: { [method: string]: number };
-        eventCheckoutPatterns: { [eventKey: string]: any };
-        userCheckoutBehavior: { [userId: string]: any };
-        iframeNavigationPatterns: { [url: string]: number };
-        successRate: number;
-        abandonmentRate: number;
+        // Session Analytics
+        totalSessions?: number;
+        totalPageViews?: number;
+        totalClicks?: number;
+        totalScrolls?: number;
+        totalFormInteractions?: number;
+        averageSessionDuration?: string;
+        bounceRate?: number;
+        topPages?: { [page: string]: number };
+        userEngagement?: { [userId: string]: any };
+        deviceBreakdown?: { [device: string]: number };
+        browserBreakdown?: { [browser: string]: number };
+        geographicData?: { [country: string]: number };
       };
-    };
   };
 }
 
@@ -451,65 +464,85 @@ export default function AdminAnalyticsPage() {
         )}
 
         {/* Enhanced Analytics Tab */}
-        {activeTab === 'enhanced' && analyticsData && analyticsData.enhancedAnalytics && (
+        {activeTab === 'enhanced' && analyticsData && (
           <div className="space-y-8">
-            {/* User Behavior Analysis */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">📊</span>
-                  Login Frequency Analysis
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Unique Users:</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {analyticsData.enhancedAnalytics.summary.totalUniqueUsers}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Average Logins per User:</span>
-                    <span className="text-xl font-semibold text-green-600">
-                      {analyticsData.enhancedAnalytics.summary.averageLoginsPerUser.toFixed(1)}
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h4 className="font-semibold text-gray-800 mb-2">Most Active Users:</h4>
-                    <div className="space-y-2">
-                      {analyticsData.enhancedAnalytics.summary.mostActiveUsers.slice(0, 5).map(([userId, data]) => (
-                        <div key={userId} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                          <span className="text-sm font-medium">{userId}</span>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600">{data.totalLogins} logins</span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {data.domains.length} domains
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            {/* Debug Information */}
+            {!analyticsData.enhancedAnalytics && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug Information</h3>
+                <p className="text-sm text-yellow-700">
+                  Enhanced Analytics data is not available. This could be because:
+                </p>
+                <ul className="text-sm text-yellow-700 mt-2 ml-4 list-disc">
+                  <li>No user data has been collected yet</li>
+                  <li>The backend is not returning enhanced analytics</li>
+                  <li>There's an issue with the data processing</li>
+                </ul>
+                <div className="mt-3 text-xs text-gray-600">
+                  <strong>Available data:</strong> {Object.keys(analyticsData).join(', ')}
                 </div>
               </div>
+            )}
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">🌐</span>
-                  Domain Activity
-                </h3>
-                <div className="space-y-3">
-                  {analyticsData.enhancedAnalytics.summary.domainBreakdown.map((domain) => (
-                    <div key={domain.domain} className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                      <span className="font-medium text-gray-800">{domain.domain}</span>
-                      <div className="flex items-center space-x-3">
-                        <span className="text-sm text-gray-600">{domain.totalLogins} logins</span>
-                        <span className="text-sm text-blue-600">{domain.uniqueUsers} users</span>
+            {/* User Behavior Analysis */}
+            {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span className="mr-2">📊</span>
+                    Login Frequency Analysis
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Total Unique Users:</span>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {analyticsData.enhancedAnalytics.summary.totalUniqueUsers || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Average Logins per User:</span>
+                      <span className="text-xl font-semibold text-green-600">
+                        {(analyticsData.enhancedAnalytics.summary.averageLoginsPerUser || 0).toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">Most Active Users:</h4>
+                      <div className="space-y-2">
+                        {(analyticsData.enhancedAnalytics.summary.mostActiveUsers || []).slice(0, 5).map(([userId, data]) => (
+                          <div key={userId} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <span className="text-sm font-medium">{userId}</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-600">{data.totalLogins} logins</span>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {data.domains?.length || 0} domains
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span className="mr-2">🌐</span>
+                    Domain Activity
+                  </h3>
+                  <div className="space-y-3">
+                    {(analyticsData.enhancedAnalytics?.summary?.domainBreakdown || []).map((domain) => (
+                      <div key={domain.domain} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                        <span className="font-medium text-gray-800">{domain.domain}</span>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-sm text-gray-600">{domain.totalLogins} logins</span>
+                          <span className="text-sm text-blue-600">{domain.uniqueUsers} users</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Peak Hours Analysis */}
             <div className="bg-white rounded-xl shadow-lg p-6">
@@ -518,7 +551,7 @@ export default function AdminAnalyticsPage() {
                 Peak Activity Hours
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {analyticsData.enhancedAnalytics.summary.peakHours.map(([hour, count]) => (
+                {(analyticsData.enhancedAnalytics?.summary?.peakHours || []).map(([hour, count]) => (
                   <div key={hour} className="text-center bg-blue-50 p-3 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">{count}</div>
                     <div className="text-sm text-gray-600">{hour}:00</div>
@@ -534,7 +567,7 @@ export default function AdminAnalyticsPage() {
                 Event Engagement Analysis
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {analyticsData.enhancedAnalytics.summary.eventEngagement.map((event) => (
+                {(analyticsData.enhancedAnalytics?.summary?.eventEngagement || []).map((event) => (
                   <div key={event.eventKey} className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-semibold text-gray-800">
@@ -564,14 +597,14 @@ export default function AdminAnalyticsPage() {
             </div>
 
             {/* Same-Night Checkout Analysis */}
-            {analyticsData.enhancedAnalytics.summary.sameNightCheckouts.length > 0 && (
+            {analyticsData.enhancedAnalytics?.summary?.sameNightCheckouts && analyticsData.enhancedAnalytics.summary.sameNightCheckouts.length > 0 && (
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                   <span className="mr-2">🛒</span>
                   Same-Night Checkout Attempts
                 </h3>
                 <div className="space-y-3">
-                  {analyticsData.enhancedAnalytics.summary.sameNightCheckouts.map((checkout) => (
+                  {(analyticsData.enhancedAnalytics?.summary?.sameNightCheckouts || []).map((checkout) => (
                     <div key={checkout.userId} className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                       <div className="flex justify-between items-start">
                         <div>
@@ -593,8 +626,67 @@ export default function AdminAnalyticsPage() {
               </div>
             )}
 
+            {/* Session Analytics */}
+            {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                  <span className="mr-2">📊</span>
+                  Session Analytics
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Sessions</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {analyticsData.enhancedAnalytics?.summary?.totalSessions || 0}
+                        </p>
+                      </div>
+                      <span className="text-2xl">🕐</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Avg Session Duration</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {analyticsData.enhancedAnalytics?.summary?.averageSessionDuration || '0m'}
+                        </p>
+                      </div>
+                      <span className="text-2xl">⏱️</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Page Views</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {analyticsData.enhancedAnalytics?.summary?.totalPageViews || 0}
+                        </p>
+                      </div>
+                      <span className="text-2xl">📄</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Bounce Rate</p>
+                        <p className="text-2xl font-bold text-yellow-600">
+                          {analyticsData.enhancedAnalytics?.summary?.bounceRate || 0}%
+                        </p>
+                      </div>
+                      <span className="text-2xl">📈</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Comprehensive Checkout Analytics */}
-            {analyticsData.enhancedAnalytics.summary.checkoutAnalytics && (
+            {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && analyticsData.enhancedAnalytics.summary.checkoutAnalytics && (
               <div className="space-y-6">
                 {/* Checkout Performance Overview */}
                 <div className="bg-white rounded-xl shadow-lg p-6">

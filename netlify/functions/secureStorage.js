@@ -211,6 +211,54 @@ class SecureStorage {
     }
   }
 
+  // Store session data
+  async storeSession(sessionData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.sessions) data.sessions = [];
+      
+      const enhancedSessionData = {
+        ...sessionData,
+        stored_at: new Date().toISOString(),
+        ip_hash: crypto.createHash('sha256').update(sessionData.ip_address).digest('hex').substring(0, 16),
+        user_agent_hash: crypto.createHash('sha256').update(sessionData.user_agent).digest('hex').substring(0, 16)
+      };
+      
+      data.sessions.push(enhancedSessionData);
+      await this.saveData(data);
+      console.log(`✅ Session stored: ${sessionData.user_id} - ${sessionData.page}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing session:', error);
+      return false;
+    }
+  }
+
+  // Store activity data
+  async storeActivity(activityData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.activities) data.activities = [];
+      
+      const enhancedActivityData = {
+        ...activityData,
+        stored_at: new Date().toISOString(),
+        ip_hash: crypto.createHash('sha256').update(activityData.ip_address).digest('hex').substring(0, 16),
+        user_agent_hash: crypto.createHash('sha256').update(activityData.user_agent).digest('hex').substring(0, 16)
+      };
+      
+      data.activities.push(enhancedActivityData);
+      await this.saveData(data);
+      console.log(`✅ Activity stored: ${activityData.activity_type} - ${activityData.user_id}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing activity:', error);
+      return false;
+    }
+  }
+
   // Get enhanced analytics data
   async getAnalytics() {
     try {
@@ -403,6 +451,9 @@ class SecureStorage {
     // Calculate detailed checkout analytics
     const checkoutAnalytics = this.calculateCheckoutAnalytics(data);
 
+    // Calculate session analytics
+    const sessionAnalytics = this.calculateSessionAnalytics(data);
+
     // Calculate summary statistics
     const summary = {
       totalUniqueUsers: Object.keys(loginFrequency).length,
@@ -432,7 +483,8 @@ class SecureStorage {
           sameNightDates: Object.keys(data.sameNightAttempts),
           totalSameNightAttempts: Object.values(data.sameNightAttempts).reduce((sum, attempts) => sum + attempts.length, 0)
         })),
-      checkoutAnalytics
+      checkoutAnalytics,
+      ...sessionAnalytics
     };
 
     return {
@@ -630,6 +682,113 @@ class SecureStorage {
     });
 
     return checkoutAnalytics;
+  }
+
+  // Calculate session analytics
+  calculateSessionAnalytics(data) {
+    const sessions = data.sessions || [];
+    const activities = data.activities || [];
+    const userLogins = data.userLogins || [];
+
+    const sessionAnalytics = {
+      totalSessions: sessions.length,
+      totalPageViews: activities.filter(a => a.activity_type === 'page_view').length,
+      totalClicks: activities.filter(a => a.activity_type === 'click').length,
+      totalScrolls: activities.filter(a => a.activity_type === 'scroll').length,
+      totalFormInteractions: activities.filter(a => a.activity_type === 'form_interaction').length,
+      averageSessionDuration: '0m',
+      bounceRate: 0,
+      topPages: {},
+      userEngagement: {},
+      deviceBreakdown: {},
+      browserBreakdown: {},
+      geographicData: {}
+    };
+
+    if (sessions.length > 0) {
+      // Calculate average session duration
+      const totalDuration = sessions.reduce((sum, session) => sum + (session.time_on_page || 0), 0);
+      const avgDurationMs = totalDuration / sessions.length;
+      const avgMinutes = Math.round(avgDurationMs / 60000);
+      sessionAnalytics.averageSessionDuration = `${avgMinutes}m`;
+
+      // Calculate bounce rate (sessions with only 1 page view)
+      const singlePageSessions = sessions.filter(session => {
+        const pageViews = activities.filter(a => 
+          a.user_id === session.user_id && 
+          a.activity_type === 'page_view' && 
+          a.page === session.page
+        ).length;
+        return pageViews <= 1;
+      }).length;
+      
+      sessionAnalytics.bounceRate = Math.round((singlePageSessions / sessions.length) * 100);
+    }
+
+    // Top pages analysis
+    const pageViews = activities.filter(a => a.activity_type === 'page_view');
+    pageViews.forEach(activity => {
+      const page = activity.page;
+      if (!sessionAnalytics.topPages[page]) {
+        sessionAnalytics.topPages[page] = 0;
+      }
+      sessionAnalytics.topPages[page]++;
+    });
+
+    // User engagement analysis
+    userLogins.forEach(login => {
+      const userActivities = activities.filter(a => a.user_id === login.user_id);
+      const userSessions = sessions.filter(s => s.user_id === login.user_id);
+      
+      sessionAnalytics.userEngagement[login.user_id] = {
+        totalActivities: userActivities.length,
+        totalSessions: userSessions.length,
+        totalTimeOnSite: userSessions.reduce((sum, s) => sum + (s.time_on_page || 0), 0),
+        averageTimePerSession: userSessions.length > 0 ? 
+          userSessions.reduce((sum, s) => sum + (s.time_on_page || 0), 0) / userSessions.length : 0,
+        pagesViewed: [...new Set(userActivities.filter(a => a.activity_type === 'page_view').map(a => a.page))].length,
+        clicks: userActivities.filter(a => a.activity_type === 'click').length,
+        scrolls: userActivities.filter(a => a.activity_type === 'scroll').length
+      };
+    });
+
+    // Device and browser breakdown
+    activities.forEach(activity => {
+      const userAgent = activity.user_agent || '';
+      const metadata = activity.metadata || {};
+      
+      // Device type
+      const deviceType = metadata.screenResolution ? 
+        (parseInt(metadata.screenResolution.split('x')[0]) > 768 ? 'Desktop' : 'Mobile') : 'Unknown';
+      
+      if (!sessionAnalytics.deviceBreakdown[deviceType]) {
+        sessionAnalytics.deviceBreakdown[deviceType] = 0;
+      }
+      sessionAnalytics.deviceBreakdown[deviceType]++;
+
+      // Browser detection
+      let browser = 'Unknown';
+      if (userAgent.includes('Chrome')) browser = 'Chrome';
+      else if (userAgent.includes('Firefox')) browser = 'Firefox';
+      else if (userAgent.includes('Safari')) browser = 'Safari';
+      else if (userAgent.includes('Edge')) browser = 'Edge';
+      
+      if (!sessionAnalytics.browserBreakdown[browser]) {
+        sessionAnalytics.browserBreakdown[browser] = 0;
+      }
+      sessionAnalytics.browserBreakdown[browser]++;
+    });
+
+    // Geographic data (if available)
+    sessions.forEach(session => {
+      const country = session.country || 'Unknown';
+      if (!sessionAnalytics.geographicData[country]) {
+        sessionAnalytics.geographicData[country] = 0;
+      }
+      sessionAnalytics.geographicData[country]++;
+    });
+
+    return sessionAnalytics;
   }
 }
 

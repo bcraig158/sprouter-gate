@@ -865,6 +865,58 @@ exports.handler = async (event, context) => {
       };
     }
     
+    // Track page view and session activity
+    if (route === '/track-session' && httpMethod === 'POST') {
+      const { userId, userType, page, sessionId, timeOnPage, referrer } = JSON.parse(body);
+      
+      const sessionData = {
+        user_id: userId,
+        user_type: userType,
+        session_id: sessionId,
+        page: page,
+        time_on_page: timeOnPage,
+        referrer: referrer,
+        timestamp: new Date().toISOString(),
+        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        user_agent: headers['user-agent'] || '',
+        domain: headers.host || 'unknown'
+      };
+      
+      // Store session data
+      await secureStorage.storeSession(sessionData);
+      
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, sessionTracked: sessionData })
+      };
+    }
+    
+    // Track user activity (clicks, scrolls, etc.)
+    if (route === '/track-activity' && httpMethod === 'POST') {
+      const { userId, userType, activityType, page, metadata } = JSON.parse(body);
+      
+      const activityData = {
+        user_id: userId,
+        user_type: userType,
+        activity_type: activityType, // 'page_view', 'click', 'scroll', 'form_interaction', 'time_on_page'
+        page: page,
+        metadata: metadata || {},
+        timestamp: new Date().toISOString(),
+        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        user_agent: headers['user-agent'] || ''
+      };
+      
+      // Store activity data
+      await secureStorage.storeActivity(activityData);
+      
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, activityTracked: activityData })
+      };
+    }
+    
     // Analytics endpoint
     if (route === '/analytics' && httpMethod === 'GET') {
       const totalLogins = analyticsData.userLogins.length;
@@ -887,6 +939,9 @@ exports.handler = async (event, context) => {
           revenue: eventPurchases.reduce((sum, p) => sum + (p.total_cost || 0), 0)
         };
       });
+      
+      // Get enhanced analytics from secure storage
+      const enhancedAnalytics = secureStorage.calculateEnhancedAnalytics(analyticsData);
       
       return {
         statusCode: 200,
@@ -919,7 +974,8 @@ exports.handler = async (event, context) => {
             last_activity: login.login_timestamp
           })),
           limitViolations: [],
-          timeframe: 'all'
+          timeframe: 'all',
+          enhancedAnalytics: enhancedAnalytics
         })
       };
     }
