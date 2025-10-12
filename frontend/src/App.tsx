@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
@@ -9,8 +10,21 @@ import PurchasePage from './features/purchase/PurchasePage';
 import StatusPage from './features/status/StatusPage';
 import AdminAnalyticsPage from './features/admin/AdminAnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import sessionTracker from './services/sessionTracking';
 
 function App() {
+  // Initialize global session tracking for anonymous users
+  React.useEffect(() => {
+    // Start tracking anonymous sessions immediately
+    const anonymousSessionId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionTracker.initialize('anonymous', 'student', anonymousSessionId);
+    
+    // Track initial page view
+    sessionTracker.trackPageView(window.location.pathname);
+    
+    console.log('Global session tracking initialized');
+  }, []);
+
   return (
     <AuthProvider>
       <Router>

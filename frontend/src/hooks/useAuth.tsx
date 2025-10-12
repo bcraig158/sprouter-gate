@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import jwtDecode from 'jwt-decode';
+import sessionTracker from '../services/sessionTracking';
 
 interface User {
   householdId: string;
@@ -45,12 +46,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         if (decoded.exp > Date.now()) {
           setToken(storedToken);
-          setUser({
+          const userData = {
             householdId: decoded.householdId,
             studentId: decoded.studentId,
             volunteerCode: decoded.volunteerCode,
             isVolunteer: decoded.isVolunteer || false
-          });
+          };
+          setUser(userData);
+          
+          // Initialize session tracking for existing user
+          const sessionId = `session_${decoded.householdId}_${Date.now()}`;
+          sessionTracker.initialize(
+            decoded.householdId, 
+            decoded.isVolunteer ? 'volunteer' : 'student', 
+            sessionId
+          );
         } else {
           localStorage.removeItem('token');
         }
@@ -78,12 +88,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       if (data.success) {
         setToken(data.token);
-        setUser({
+        const userData = {
           householdId: data.householdId,
           studentId: studentId.trim(),
           isVolunteer: false
-        });
+        };
+        setUser(userData);
         localStorage.setItem('token', data.token);
+        
+        // Initialize session tracking for new login
+        const sessionId = `session_${data.householdId}_${Date.now()}`;
+        sessionTracker.initialize(data.householdId, 'student', sessionId);
+        
         return true;
       }
       return false;
@@ -111,13 +127,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       if (data.success) {
         setToken(data.token);
-        setUser({
+        const userData = {
           householdId: data.householdId,
           volunteerCode: volunteerCode.trim(),
           isVolunteer: true,
           isAdmin: data.isAdmin || false
-        });
+        };
+        setUser(userData);
         localStorage.setItem('token', data.token);
+        
+        // Initialize session tracking for volunteer login
+        const sessionId = `session_${data.householdId}_${Date.now()}`;
+        sessionTracker.initialize(data.householdId, 'volunteer', sessionId);
+        
         return true;
       }
       return false;
@@ -128,6 +150,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
+    // Stop session tracking before logout
+    sessionTracker.stop();
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');

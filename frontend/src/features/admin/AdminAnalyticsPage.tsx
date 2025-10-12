@@ -198,16 +198,16 @@ export default function AdminAnalyticsPage() {
       {/* Header */}
       <div className="bg-white shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Analytics Dashboard</h1>
-              <p className="text-gray-600 mt-1">Starstruck Dance Show 2025 - Real-time Analytics</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Analytics Dashboard</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Starstruck Dance Show 2025 - Real-time Analytics</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <select
                 value={selectedTimeframe}
                 onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="24h">Last 24 Hours</option>
                 <option value="7d">Last 7 Days</option>
@@ -216,7 +216,7 @@ export default function AdminAnalyticsPage() {
               </select>
               <button
                 onClick={() => navigate('/volunteer-login')}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
               >
                 Back to Login
               </button>
@@ -227,26 +227,27 @@ export default function AdminAnalyticsPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-8">
+        <div className="mb-6 sm:mb-8">
+          <nav className="flex flex-wrap gap-2 sm:gap-4 lg:gap-8">
             {[
-              { id: 'overview', label: 'Overview', icon: '📊' },
-              { id: 'enhanced', label: 'Enhanced Analytics', icon: '🔍' },
-              { id: 'users', label: 'Users', icon: '👥' },
-              { id: 'shows', label: 'Shows', icon: '🎭' },
-              { id: 'revenue', label: 'Revenue', icon: '💰' }
+              { id: 'overview', label: 'Overview', icon: '📊', shortLabel: 'Overview' },
+              { id: 'enhanced', label: 'Enhanced Analytics', icon: '🔍', shortLabel: 'Enhanced' },
+              { id: 'users', label: 'Users', icon: '👥', shortLabel: 'Users' },
+              { id: 'shows', label: 'Shows', icon: '🎭', shortLabel: 'Shows' },
+              { id: 'revenue', label: 'Revenue', icon: '💰', shortLabel: 'Revenue' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                   activeTab === tab.id
                     ? 'bg-blue-100 text-blue-700 border-2 border-blue-200'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
+                <span className="mr-1 sm:mr-2">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             ))}
           </nav>
@@ -465,29 +466,38 @@ export default function AdminAnalyticsPage() {
 
         {/* Enhanced Analytics Tab */}
         {activeTab === 'enhanced' && analyticsData && (
-          <div className="space-y-8">
+          <div className="space-y-6 px-4 sm:px-6 lg:px-8">
             {/* Debug Information */}
             {!analyticsData.enhancedAnalytics && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug Information</h3>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mx-4 sm:mx-0">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Enhanced Analytics Loading</h3>
                 <p className="text-sm text-yellow-700">
-                  Enhanced Analytics data is not available. This could be because:
+                  Enhanced analytics are being processed. Basic analytics are available below:
                 </p>
-                <ul className="text-sm text-yellow-700 mt-2 ml-4 list-disc">
-                  <li>No user data has been collected yet</li>
-                  <li>The backend is not returning enhanced analytics</li>
-                  <li>There's an issue with the data processing</li>
-                </ul>
-                <div className="mt-3 text-xs text-gray-600">
-                  <strong>Available data:</strong> {Object.keys(analyticsData).join(', ')}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-600">{analyticsData.totalLogins}</div>
+                    <div className="text-sm text-gray-600">Total Logins</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-green-600">{analyticsData.studentLogins}</div>
+                    <div className="text-sm text-gray-600">Student Logins</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-purple-600">{analyticsData.volunteerLogins}</div>
+                    <div className="text-sm text-gray-600">Volunteer Logins</div>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-gray-600">
+                  <strong>Note:</strong> Enhanced analytics will appear once more user data is collected and processed.
                 </div>
               </div>
             )}
 
             {/* User Behavior Analysis */}
             {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
                   <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                     <span className="mr-2">📊</span>
                     Login Frequency Analysis
@@ -524,7 +534,7 @@ export default function AdminAnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
                   <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                     <span className="mr-2">🌐</span>
                     Domain Activity
@@ -628,12 +638,12 @@ export default function AdminAnalyticsPage() {
 
             {/* Session Analytics */}
             {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
                   <span className="mr-2">📊</span>
                   Session Analytics
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -687,14 +697,14 @@ export default function AdminAnalyticsPage() {
 
             {/* Comprehensive Checkout Analytics */}
             {analyticsData.enhancedAnalytics && analyticsData.enhancedAnalytics.summary && analyticsData.enhancedAnalytics.summary.checkoutAnalytics && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Checkout Performance Overview */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
                     <span className="mr-2">💳</span>
                     Checkout Performance Analytics
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
