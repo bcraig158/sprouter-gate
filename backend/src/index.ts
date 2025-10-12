@@ -42,7 +42,7 @@ app.use(helmet({
 app.use(limiter);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? ['https://maidutickets.com', 'https://sproutersecure.com', 'https://api.maidutickets.com'] 
     : ['http://localhost:3002'],
   credentials: true
 }));
