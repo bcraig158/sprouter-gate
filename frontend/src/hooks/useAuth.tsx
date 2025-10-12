@@ -118,13 +118,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isAdmin: data.isAdmin || false
         });
         localStorage.setItem('token', data.token);
-        
-        // If this is an admin login, redirect to admin analytics
-        if (data.isAdmin) {
-          window.location.href = '/admin-analytics';
-          return true;
-        }
-        
         return true;
       }
       return false;

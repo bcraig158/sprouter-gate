@@ -52,7 +52,11 @@ function App() {
           } />
           
           {/* Admin routes */}
-          <Route path="/admin-analytics" element={<AdminAnalyticsPage />} />
+          <Route path="/admin-analytics" element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminAnalyticsPage />
+            </ProtectedRoute>
+          } />
           
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/login" replace />} />

@@ -40,7 +40,13 @@ export default function LoginPage() {
     try {
       const success = await volunteerLogin(volunteerCode, email);
       if (success) {
-        navigate('/volunteer-select');
+        // Check if this is an admin login
+        const isAdmin = volunteerCode === '339933' && email.toLowerCase() === 'admin@maidu.com';
+        if (isAdmin) {
+          navigate('/admin-analytics');
+        } else {
+          navigate('/volunteer-select');
+        }
       } else {
         setError('Invalid volunteer code or email. Please try again.');
       }

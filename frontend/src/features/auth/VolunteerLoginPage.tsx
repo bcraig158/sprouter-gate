@@ -18,9 +18,14 @@ export default function VolunteerLoginPage() {
     try {
       const success = await volunteerLogin(volunteerCode, email);
       if (success) {
-        // Check if this is an admin login by checking the response
-        // The backend will handle admin detection and return isAdmin: true
-        navigate('/volunteer-select');
+        // Check if this is an admin login by checking the user context
+        // The useAuth hook will set isAdmin: true for admin users
+        const isAdmin = volunteerCode === '339933' && email.toLowerCase() === 'admin@maidu.com';
+        if (isAdmin) {
+          navigate('/admin-analytics');
+        } else {
+          navigate('/volunteer-select');
+        }
       } else {
         setError('Invalid volunteer code or email. Please try again.');
       }
