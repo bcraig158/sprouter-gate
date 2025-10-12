@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { DateTime } = require('luxon');
+const crypto = require('crypto');
+const secureStorage = require('./secureStorage');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
@@ -552,11 +554,43 @@ const volunteerCodes = [
   { name: "Admin", email: "admin@maidu.com", code: "339933", notes: "System Administrator" }
 ];
 
-// In-memory storage for sessions and analytics
+// Initialize secure storage
+let analyticsData = {
+  userLogins: [],
+  showSelections: [],
+  purchases: [],
+  sessions: {},
+  metadata: {
+    lastUpdated: new Date().toISOString(),
+    version: '2.0',
+    storage: 'netlify-secure-file',
+    encryption: 'AES-256-CBC'
+  }
+};
+
+// Initialize storage on startup
+async function initializeStorage() {
+  try {
+    console.log('🔒 Initializing secure file storage...');
+    
+    // Load existing data
+    const data = await secureStorage.getAnalytics();
+    if (data) {
+      analyticsData = data;
+      console.log(`📊 Loaded ${analyticsData.userLogins.length} logins, ${analyticsData.showSelections.length} selections, ${analyticsData.purchases.length} purchases`);
+    } else {
+      console.log('📊 Starting with fresh analytics data');
+    }
+  } catch (error) {
+    console.error('❌ Storage initialization failed:', error);
+  }
+}
+
+// Initialize on startup
+initializeStorage();
+
+// In-memory storage for sessions (temporary)
 const sessions = new Map();
-const userLogins = [];
-const showSelections = [];
-const purchases = [];
 
 // Helper functions
 function findStudent(studentId) {
@@ -681,8 +715,8 @@ exports.handler = async (event, context) => {
       // Create session
       const sessionId = createSession(student.household_id);
       
-      // Track login
-      userLogins.push({
+      // Track login in secure storage
+      const loginData = {
         user_id: student.household_id,
         user_type: 'student',
         identifier: studentId,
@@ -691,8 +725,16 @@ exports.handler = async (event, context) => {
         ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
         user_agent: headers['user-agent'] || '',
         login_timestamp: new Date().toISOString(),
-        session_id: sessionId
-      });
+        session_id: sessionId,
+        domain: headers.host || 'unknown'
+      };
+      
+      // Store in secure file storage
+      await secureStorage.storeLogin(loginData);
+      
+      // Update local cache
+      const sanitizedData = secureStorage.sanitizeLoginData(loginData);
+      analyticsData.userLogins.push(sanitizedData);
       
       return {
         statusCode: 200,
@@ -752,8 +794,8 @@ exports.handler = async (event, context) => {
       // Create session
       const sessionId = createSession(volunteerHouseholdId);
       
-      // Track login
-      userLogins.push({
+      // Track login in secure storage
+      const loginData = {
         user_id: volunteerHouseholdId,
         user_type: 'volunteer',
         identifier: volunteerCode,
@@ -762,8 +804,16 @@ exports.handler = async (event, context) => {
         ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
         user_agent: headers['user-agent'] || '',
         login_timestamp: new Date().toISOString(),
-        session_id: sessionId
-      });
+        session_id: sessionId,
+        domain: headers.host || 'unknown'
+      };
+      
+      // Store in secure file storage
+      await secureStorage.storeLogin(loginData);
+      
+      // Update local cache
+      const sanitizedData = secureStorage.sanitizeLoginData(loginData);
+      analyticsData.userLogins.push(sanitizedData);
       
       return {
         statusCode: 200,
@@ -793,11 +843,14 @@ exports.handler = async (event, context) => {
         user_agent: headers['user-agent'] || ''
       };
       
-      // Store in appropriate array based on event type
+      // Store in secure file storage
+      await secureStorage.storeEvent(eventData);
+      
+      // Update local cache
       if (eventType === 'sprouter_embed_loaded') {
-        showSelections.push(eventData);
+        analyticsData.showSelections.push(eventData);
       } else if (eventType === 'sprouter_checkout_completed') {
-        purchases.push({
+        analyticsData.purchases.push({
           ...eventData,
           total_cost: metadata?.total_cost || 0,
           tickets_purchased: metadata?.tickets_purchased || 0,
@@ -814,19 +867,19 @@ exports.handler = async (event, context) => {
     
     // Analytics endpoint
     if (route === '/analytics' && httpMethod === 'GET') {
-      const totalLogins = userLogins.length;
-      const studentLogins = userLogins.filter(u => u.user_type === 'student').length;
-      const volunteerLogins = userLogins.filter(u => u.user_type === 'volunteer').length;
-      const totalShowSelections = showSelections.length;
-      const totalPurchases = purchases.length;
-      const totalRevenue = purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0);
+      const totalLogins = analyticsData.userLogins.length;
+      const studentLogins = analyticsData.userLogins.filter(u => u.user_type === 'student').length;
+      const volunteerLogins = analyticsData.userLogins.filter(u => u.user_type === 'volunteer').length;
+      const totalShowSelections = analyticsData.showSelections.length;
+      const totalPurchases = analyticsData.purchases.length;
+      const totalRevenue = analyticsData.purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0);
       
       // Event-specific analytics
       const eventBreakdown = {};
       const eventKeys = ['tue-530', 'tue-630', 'thu-530', 'thu-630'];
       eventKeys.forEach(key => {
-        const selections = showSelections.filter(s => s.event_key === key);
-        const eventPurchases = purchases.filter(p => p.event_key === key);
+        const selections = analyticsData.showSelections.filter(s => s.event_key === key);
+        const eventPurchases = analyticsData.purchases.filter(p => p.event_key === key);
         eventBreakdown[key] = {
           selections: selections.length,
           purchases: eventPurchases.length,
@@ -846,29 +899,73 @@ exports.handler = async (event, context) => {
           totalPurchases,
           totalRevenue,
           showBreakdown: eventBreakdown,
-          recentActivity: userLogins.slice(-10).map(login => ({
+          recentActivity: analyticsData.userLogins.slice(-10).map(login => ({
             activity_type: 'login',
             activity_details: `${login.user_type} login: ${login.identifier}`,
             activity_timestamp: login.login_timestamp,
             user_id: login.user_id,
             user_type: login.user_type
           })),
-          topUsers: userLogins.slice(-20).map(login => ({
+          topUsers: analyticsData.userLogins.slice(-20).map(login => ({
             user_id: login.user_id,
             user_type: login.user_type,
             identifier: login.identifier,
             name: login.name,
-            total_selections: showSelections.filter(s => s.user_id === login.user_id).length,
-            total_purchase_intents: showSelections.filter(s => s.user_id === login.user_id && s.event_type === 'sprouter_checkout_started').length,
-            total_purchases: purchases.filter(p => p.user_id === login.user_id).length,
-            total_sprouter_successes: purchases.filter(p => p.user_id === login.user_id && p.event_type === 'sprouter_checkout_completed').length,
-            total_spent: purchases.filter(p => p.user_id === login.user_id).reduce((sum, p) => sum + (p.total_cost || 0), 0),
+            total_selections: analyticsData.showSelections.filter(s => s.user_id === login.user_id).length,
+            total_purchase_intents: analyticsData.showSelections.filter(s => s.user_id === login.user_id && s.event_type === 'sprouter_checkout_started').length,
+            total_purchases: analyticsData.purchases.filter(p => p.user_id === login.user_id).length,
+            total_sprouter_successes: analyticsData.purchases.filter(p => p.user_id === login.user_id && p.event_type === 'sprouter_checkout_completed').length,
+            total_spent: analyticsData.purchases.filter(p => p.user_id === login.user_id).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             last_activity: login.login_timestamp
           })),
           limitViolations: [],
           timeframe: 'all'
         })
       };
+    }
+    
+    // Data export endpoint (admin only)
+    if (route === '/export-data' && httpMethod === 'GET') {
+      // Check for admin authorization
+      const authHeader = headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Unauthorized - Admin token required' })
+        };
+      }
+      
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (!decoded.isAdmin) {
+          return {
+            statusCode: 403,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Forbidden - Admin access required' })
+          };
+        }
+        
+        // Return sanitized analytics data from secure storage
+        const exportData = await secureStorage.exportData();
+        
+        return {
+          statusCode: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Disposition': 'attachment; filename="analytics-export.json"'
+          },
+          body: JSON.stringify(exportData, null, 2)
+        };
+      } catch (error) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Invalid token' })
+        };
+      }
     }
     
     // Default response
@@ -878,7 +975,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ 
         error: 'Route not found',
         requestedRoute: route,
-        availableRoutes: ['/health', '/login', '/volunteer-login', '/analytics']
+        availableRoutes: ['/health', '/login', '/volunteer-login', '/analytics', '/export-data']
       })
     };
     
