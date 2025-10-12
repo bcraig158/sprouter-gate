@@ -599,10 +599,16 @@ exports.handler = async (event, context) => {
   try {
     const { httpMethod, path, headers, body } = event;
     
-    // Extract the route from the full Netlify path
-    // Path will be like: /.netlify/functions/api/login
+    // Extract the route from the Netlify path
+    // Path will be like: /api/login (from redirect) or /.netlify/functions/api/login (direct)
     // We need to extract: /login
-    const route = path.replace('/.netlify/functions/api', '') || '/';
+    let route = path;
+    if (path.startsWith('/.netlify/functions/api')) {
+      route = path.replace('/.netlify/functions/api', '');
+    } else if (path.startsWith('/api/')) {
+      route = path.replace('/api', '');
+    }
+    route = route || '/';
     
     // CORS headers
     const corsHeaders = {
