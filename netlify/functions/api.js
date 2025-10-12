@@ -76,16 +76,73 @@ async function initDatabase() {
       )
     `);
 
-    // Add sample data
-    await runQuery(`
-      INSERT OR IGNORE INTO students (student_id, household_id) 
-      VALUES (?, ?)
-    `, ['33727', 'HH_33727']);
+    // Import all students from CSV data
+    const students = [
+      { student_id: '33727', household_id: 'HH_33727' },
+      { student_id: '39444', household_id: 'HH_39444' },
+      { student_id: '39697', household_id: 'HH_39697' },
+      { student_id: '39522', household_id: 'HH_39522' },
+      { student_id: '39459', household_id: 'HH_39459' },
+      { student_id: '39498', household_id: 'HH_39498' },
+      { student_id: '39438', household_id: 'HH_39438' },
+      { student_id: '39541', household_id: 'HH_39541' },
+      { student_id: '39463', household_id: 'HH_39463' },
+      { student_id: '39645', household_id: 'HH_39645' },
+      { student_id: '39394', household_id: 'HH_39394' },
+      { student_id: '39720', household_id: 'HH_39720' },
+      { student_id: '39769', household_id: 'HH_39769' },
+      { student_id: '39513', household_id: 'HH_39513' },
+      { student_id: '39651', household_id: 'HH_39651' },
+      { student_id: '39637', household_id: 'HH_39637' },
+      { student_id: '39524', household_id: 'HH_39524' },
+      { student_id: '39461', household_id: 'HH_39461' },
+      { student_id: '39448', household_id: 'HH_39448' },
+      { student_id: '38990', household_id: 'HH_38990' },
+      { student_id: '39393', household_id: 'HH_39393' },
+      { student_id: '39523', household_id: 'HH_39523' },
+      { student_id: '39384', household_id: 'HH_39384' },
+      { student_id: '39702', household_id: 'HH_39702' },
+      { student_id: '38261', household_id: 'HH_38261' },
+      { student_id: '39718', household_id: 'HH_39718' },
+      { student_id: '39401', household_id: 'HH_39401' },
+      { student_id: '39451', household_id: 'HH_39451' },
+      { student_id: '39380', household_id: 'HH_39380' },
+      { student_id: '39592', household_id: 'HH_39592' },
+      { student_id: '39518', household_id: 'HH_39518' },
+      { student_id: '39457', household_id: 'HH_39457' },
+      { student_id: '39476', household_id: 'HH_39476' },
+      { student_id: '39533', household_id: 'HH_39533' },
+      { student_id: '39480', household_id: 'HH_39480' },
+      { student_id: '39421', household_id: 'HH_39421' },
+      { student_id: '39717', household_id: 'HH_39717' },
+      { student_id: '39585', household_id: 'HH_39585' },
+      { student_id: '39419', household_id: 'HH_39419' },
+      { student_id: '39514', household_id: 'HH_39514' },
+      { student_id: '39478', household_id: 'HH_39478' },
+      { student_id: '39388', household_id: 'HH_39388' },
+      { student_id: '39495', household_id: 'HH_39495' },
+      { student_id: '39443', household_id: 'HH_39443' },
+      { student_id: '39745', household_id: 'HH_39745' },
+      { student_id: '39402', household_id: 'HH_39402' },
+      { student_id: '39716', household_id: 'HH_39716' },
+      { student_id: '39392', household_id: 'HH_39392' },
+      { student_id: '39752', household_id: 'HH_39752' },
+      { student_id: '39727', household_id: 'HH_39727' },
+      { student_id: '39399', household_id: 'HH_39399' }
+    ];
 
-    await runQuery(`
-      INSERT OR IGNORE INTO households (household_id, volunteer_redeemed) 
-      VALUES (?, ?)
-    `, ['HH_33727', false]);
+    // Insert all students
+    for (const student of students) {
+      await runQuery(`
+        INSERT OR IGNORE INTO students (student_id, household_id) 
+        VALUES (?, ?)
+      `, [student.student_id, student.household_id]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO households (household_id, volunteer_redeemed) 
+        VALUES (?, ?)
+      `, [student.household_id, false]);
+    }
 
     // Add all 45 volunteers from volunteer-codes.json
     const volunteers = [
