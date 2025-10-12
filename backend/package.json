@@ -10,6 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "consolidate-database": "ts-node src/scripts/consolidate-database.ts",
     "test-admin-login": "ts-node src/scripts/test-admin-login.ts",
+    "test-analytics": "ts-node src/scripts/test-analytics-persistence.ts",
+    "verify-production": "ts-node src/scripts/verify-production-setup.ts",
     "setup-database": "ts-node src/scripts/setup-database.ts",
     "extract-production-data": "ts-node src/scripts/extract-production-data.ts"
   },

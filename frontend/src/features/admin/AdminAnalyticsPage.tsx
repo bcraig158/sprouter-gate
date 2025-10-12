@@ -11,6 +11,17 @@ interface AnalyticsData {
   totalShowSelections: number;
   totalPurchases: number;
   totalRevenue: number;
+  // Active users data
+  activeUsers: number;
+  activeStudentUsers: number;
+  activeVolunteerUsers: number;
+  activeUsersList: Array<{
+    user_id: string;
+    user_type: string;
+    identifier: string;
+    login_timestamp: string;
+    time_ago: number;
+  }>;
   showBreakdown: {
     [key: string]: {
       selections: number;
@@ -99,6 +110,7 @@ export default function AdminAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
   const [activeTab, setActiveTab] = useState<'overview' | 'enhanced' | 'users' | 'shows' | 'revenue'>('overview');
+  const [lastRefresh] = useState<Date>(new Date());
 
   // Check if user is authenticated and is admin
   useEffect(() => {
@@ -142,6 +154,11 @@ export default function AdminAnalyticsPage() {
         totalShowSelections: 0,
         totalPurchases: 0,
         totalRevenue: 0,
+        // Active users data
+        activeUsers: 0,
+        activeStudentUsers: 0,
+        activeVolunteerUsers: 0,
+        activeUsersList: [],
         showBreakdown: {
           'tue-530': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
           'tue-630': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
@@ -158,6 +175,17 @@ export default function AdminAnalyticsPage() {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh every 30 seconds for real-time data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user && user.isAdmin) {
+        fetchAnalyticsData();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -256,6 +284,75 @@ export default function AdminAnalyticsPage() {
         {/* Overview Tab */}
         {activeTab === 'overview' && analyticsData && (
           <div className="space-y-8">
+            {/* Real-Time Active Users */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-lg p-6 border-2 border-green-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                  <span className="mr-3 text-3xl">🟢</span>
+                  Live Active Users
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-600">Real-time</span>
+                  <span className="text-xs text-gray-500 ml-2">
+                    Last updated: {lastRefresh.toLocaleTimeString()}
+                  </span>
+                  <button
+                    onClick={fetchAnalyticsData}
+                    className="ml-2 p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                    title="Refresh data"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-green-600">{analyticsData.activeUsers || 0}</div>
+                  <div className="text-sm text-gray-600">Total Active</div>
+                  <div className="text-xs text-gray-500 mt-1">(last 5 minutes)</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-blue-600">{analyticsData.activeStudentUsers || 0}</div>
+                  <div className="text-sm text-gray-600">Students</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-purple-600">{analyticsData.activeVolunteerUsers || 0}</div>
+                  <div className="text-sm text-gray-600">Volunteers</div>
+                </div>
+              </div>
+              
+              {/* Active Users List */}
+              {analyticsData.activeUsersList && analyticsData.activeUsersList.length > 0 ? (
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Currently Active Users</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {analyticsData.activeUsersList.map((user, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${user.user_type === 'student' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
+                          <span className="font-medium text-gray-800">{user.identifier}</span>
+                          <span className="text-sm text-gray-500">({user.user_type})</span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.time_ago === 0 ? 'Just now' : `${user.time_ago}m ago`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 text-center py-8">
+                  <div className="text-gray-400 text-4xl mb-2">👥</div>
+                  <p className="text-gray-500">No active users in the last 5 minutes</p>
+                  <p className="text-sm text-gray-400 mt-1">Users will appear here when they log in</p>
+                </div>
+              )}
+            </div>
+
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">

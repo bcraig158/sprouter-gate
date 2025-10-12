@@ -867,53 +867,71 @@ exports.handler = async (event, context) => {
     
     // Track page view and session activity
     if (route === '/track-session' && httpMethod === 'POST') {
-      const { userId, userType, page, sessionId, timeOnPage, referrer } = JSON.parse(body);
+      console.log('📊 Session tracking request received:', body);
+      const sessionDataArray = JSON.parse(body);
       
-      const sessionData = {
-        user_id: userId,
-        user_type: userType,
-        session_id: sessionId,
-        page: page,
-        time_on_page: timeOnPage,
-        referrer: referrer,
-        timestamp: new Date().toISOString(),
-        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-        user_agent: headers['user-agent'] || '',
-        domain: headers.host || 'unknown'
-      };
+      // Handle both single session and array of sessions
+      const sessions = Array.isArray(sessionDataArray) ? sessionDataArray : [sessionDataArray];
       
-      // Store session data
-      await secureStorage.storeSession(sessionData);
+      for (const sessionData of sessions) {
+        const { userId, userType, page, sessionId, timeOnPage, referrer } = sessionData;
+        
+        const enhancedSessionData = {
+          user_id: userId,
+          user_type: userType,
+          session_id: sessionId,
+          page: page,
+          time_on_page: timeOnPage,
+          referrer: referrer,
+          timestamp: new Date().toISOString(),
+          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          user_agent: headers['user-agent'] || '',
+          domain: headers.host || 'unknown'
+        };
+        
+        // Store session data
+        await secureStorage.storeSession(enhancedSessionData);
+        console.log('✅ Session stored:', enhancedSessionData.user_id, enhancedSessionData.page);
+      }
       
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ success: true, sessionTracked: sessionData })
+        body: JSON.stringify({ success: true, sessionsTracked: sessions.length })
       };
     }
     
     // Track user activity (clicks, scrolls, etc.)
     if (route === '/track-activity' && httpMethod === 'POST') {
-      const { userId, userType, activityType, page, metadata } = JSON.parse(body);
+      console.log('📊 Activity tracking request received:', body);
+      const activityDataArray = JSON.parse(body);
       
-      const activityData = {
-        user_id: userId,
-        user_type: userType,
-        activity_type: activityType, // 'page_view', 'click', 'scroll', 'form_interaction', 'time_on_page'
-        page: page,
-        metadata: metadata || {},
-        timestamp: new Date().toISOString(),
-        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-        user_agent: headers['user-agent'] || ''
-      };
+      // Handle both single activity and array of activities
+      const activities = Array.isArray(activityDataArray) ? activityDataArray : [activityDataArray];
       
-      // Store activity data
-      await secureStorage.storeActivity(activityData);
+      for (const activityData of activities) {
+        const { userId, userType, activityType, page, metadata } = activityData;
+        
+        const enhancedActivityData = {
+          user_id: userId,
+          user_type: userType,
+          activity_type: activityType, // 'page_view', 'click', 'scroll', 'form_interaction', 'time_on_page'
+          page: page,
+          metadata: metadata || {},
+          timestamp: new Date().toISOString(),
+          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          user_agent: headers['user-agent'] || ''
+        };
+        
+        // Store activity data
+        await secureStorage.storeActivity(enhancedActivityData);
+        console.log('✅ Activity stored:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
+      }
       
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ success: true, activityTracked: activityData })
+        body: JSON.stringify({ success: true, activitiesTracked: activities.length })
       };
     }
     
@@ -925,6 +943,14 @@ exports.handler = async (event, context) => {
       const totalShowSelections = analyticsData.showSelections.length;
       const totalPurchases = analyticsData.purchases.length;
       const totalRevenue = analyticsData.purchases.reduce((sum, p) => sum + (p.total_cost || 0), 0);
+      
+      // Calculate active users (logged in within last 5 minutes)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const activeUsers = analyticsData.userLogins.filter(login => 
+        new Date(login.login_timestamp) > fiveMinutesAgo
+      );
+      const activeStudentUsers = activeUsers.filter(u => u.user_type === 'student').length;
+      const activeVolunteerUsers = activeUsers.filter(u => u.user_type === 'volunteer').length;
       
       // Event-specific analytics
       const eventBreakdown = {};
@@ -953,6 +979,17 @@ exports.handler = async (event, context) => {
           totalShowSelections,
           totalPurchases,
           totalRevenue,
+          // Active users data
+          activeUsers: activeUsers.length,
+          activeStudentUsers,
+          activeVolunteerUsers,
+          activeUsersList: activeUsers.map(user => ({
+            user_id: user.user_id,
+            user_type: user.user_type,
+            identifier: user.identifier,
+            login_timestamp: user.login_timestamp,
+            time_ago: Math.round((Date.now() - new Date(user.login_timestamp).getTime()) / 1000 / 60) // minutes ago
+          })),
           showBreakdown: eventBreakdown,
           recentActivity: analyticsData.userLogins.slice(-10).map(login => ({
             activity_type: 'login',

@@ -100,6 +100,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const sessionId = `session_${data.householdId}_${Date.now()}`;
         sessionTracker.initialize(data.householdId, 'student', sessionId);
         
+        // Force flush data immediately
+        setTimeout(() => {
+          sessionTracker.forceFlush();
+        }, 1000);
+        
         return true;
       }
       return false;
@@ -139,6 +144,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Initialize session tracking for volunteer login
         const sessionId = `session_${data.householdId}_${Date.now()}`;
         sessionTracker.initialize(data.householdId, 'volunteer', sessionId);
+        
+        // Force flush data immediately
+        setTimeout(() => {
+          sessionTracker.forceFlush();
+        }, 1000);
         
         return true;
       }

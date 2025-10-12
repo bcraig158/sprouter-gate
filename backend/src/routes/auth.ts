@@ -776,6 +776,49 @@ router.get('/user-activity/:userId', async (req: express.Request, res: express.R
   }
 });
 
+// POST /api/track-activity
+router.post('/track-activity', async (req: express.Request, res: express.Response): Promise<void> => {
+  try {
+    const activities = req.body;
+    
+    if (!Array.isArray(activities)) {
+      res.status(400).json({ error: 'Activities must be an array' });
+      return;
+    }
+
+    // Process each activity
+    for (const activity of activities) {
+      try {
+        // Insert into user_activity_timeline table
+        await runQuery(
+          `INSERT INTO user_activity_timeline 
+           (user_id, user_type, activity_type, activity_details, show_id, session_id, ip_address, user_agent, activity_timestamp, metadata) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            activity.userId,
+            activity.userType,
+            activity.activityType,
+            activity.page || '',
+            activity.showId || null,
+            activity.sessionId || null,
+            req.ip,
+            req.get('User-Agent') || '',
+            new Date().toISOString(),
+            activity.metadata ? JSON.stringify(activity.metadata) : null
+          ]
+        );
+      } catch (error) {
+        console.error('Error tracking activity:', error);
+      }
+    }
+
+    res.json({ success: true, message: 'Activities tracked successfully' });
+  } catch (error) {
+    console.error('Track activity error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/analytics
 router.get('/analytics', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
@@ -919,6 +962,36 @@ router.get('/analytics', async (req: express.Request, res: express.Response): Pr
        ORDER BY purchase_date DESC, total_tickets_purchased DESC`
     );
 
+    // Get active users data (users who logged in within last 24 hours)
+    const activeUsers = await getQuery<{ count: number }>(
+      'SELECT COUNT(DISTINCT user_id) as count FROM user_logins WHERE login_timestamp >= datetime("now", "-1 day")'
+    );
+
+    const activeStudentUsers = await getQuery<{ count: number }>(
+      'SELECT COUNT(DISTINCT user_id) as count FROM user_logins WHERE user_type = "student" AND login_timestamp >= datetime("now", "-1 day")'
+    );
+
+    const activeVolunteerUsers = await getQuery<{ count: number }>(
+      'SELECT COUNT(DISTINCT user_id) as count FROM user_logins WHERE user_type = "volunteer" AND login_timestamp >= datetime("now", "-1 day")'
+    );
+
+    const activeUsersList = await allQuery<{
+      user_id: string;
+      user_type: string;
+      identifier: string;
+      login_timestamp: string;
+    }>(
+      `SELECT 
+        user_id,
+        user_type,
+        identifier,
+        login_timestamp
+       FROM user_logins 
+       WHERE login_timestamp >= datetime("now", "-1 day")
+       ORDER BY login_timestamp DESC
+       LIMIT 50`
+    );
+
     const analyticsData = {
       totalLogins: totalLogins?.count || 0,
       studentLogins: studentLogins?.count || 0,
@@ -926,6 +999,14 @@ router.get('/analytics', async (req: express.Request, res: express.Response): Pr
       totalShowSelections: totalShowSelections?.count || 0,
       totalPurchases: totalPurchases?.count || 0,
       totalRevenue: totalRevenue?.total || 0,
+      // Active users data
+      activeUsers: activeUsers?.count || 0,
+      activeStudentUsers: activeStudentUsers?.count || 0,
+      activeVolunteerUsers: activeVolunteerUsers?.count || 0,
+      activeUsersList: activeUsersList.map(user => ({
+        ...user,
+        time_ago: Math.floor((Date.now() - new Date(user.login_timestamp).getTime()) / (1000 * 60)) // minutes ago
+      })),
       showBreakdown: showBreakdown.reduce((acc, show) => {
         acc[show.show_id] = {
           show_date: show.show_date,

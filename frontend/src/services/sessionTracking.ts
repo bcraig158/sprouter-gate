@@ -34,6 +34,10 @@ class SessionTracker {
     this.isTracking = true;
     this.setupPageTracking();
     this.setupActivityTracking();
+    
+    // Immediately track the current page
+    this.trackPageView(window.location.pathname);
+    
     console.log(`SessionTracker: Initialized for ${userType} ${userId}`);
   }
 
@@ -59,6 +63,11 @@ class SessionTracker {
       url: window.location.href,
       timestamp: new Date().toISOString()
     });
+
+    // Also track session data immediately for login pages
+    if (page.includes('login') || page.includes('select') || page.includes('purchase')) {
+      this.trackSessionData(page, 1000); // Track 1 second on login/select pages
+    }
 
     console.log(`SessionTracker: Page view tracked - ${page}`);
   }
@@ -210,6 +219,7 @@ class SessionTracker {
     this.activityQueue = [];
 
     try {
+      console.log('SessionTracker: Sending activities to backend:', activities);
       const response = await fetch('/api/track-activity', {
         method: 'POST',
         headers: {
@@ -219,8 +229,9 @@ class SessionTracker {
       });
 
       if (response.ok) {
-        console.log(`SessionTracker: Flushed ${activities.length} activities`);
+        console.log(`SessionTracker: Successfully flushed ${activities.length} activities`);
       } else {
+        console.error('SessionTracker: Failed to send activities, status:', response.status);
         // Re-queue failed activities
         this.activityQueue.unshift(...activities);
       }
@@ -239,6 +250,7 @@ class SessionTracker {
     this.sessionQueue = [];
 
     try {
+      console.log('SessionTracker: Sending sessions to backend:', sessions);
       const response = await fetch('/api/track-session', {
         method: 'POST',
         headers: {
@@ -248,8 +260,9 @@ class SessionTracker {
       });
 
       if (response.ok) {
-        console.log(`SessionTracker: Flushed ${sessions.length} sessions`);
+        console.log(`SessionTracker: Successfully flushed ${sessions.length} sessions`);
       } else {
+        console.error('SessionTracker: Failed to send sessions, status:', response.status);
         // Re-queue failed sessions
         this.sessionQueue.unshift(...sessions);
       }
@@ -275,6 +288,13 @@ class SessionTracker {
     this.flushSessionQueue();
 
     console.log('SessionTracker: Stopped tracking');
+  }
+
+  // Force flush all pending data
+  async forceFlush() {
+    console.log('SessionTracker: Force flushing all data');
+    await this.flushActivityQueue();
+    await this.flushSessionQueue();
   }
 
   // Get current session info

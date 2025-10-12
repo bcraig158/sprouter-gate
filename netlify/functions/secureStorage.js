@@ -7,12 +7,48 @@ const crypto = require('crypto');
 class SecureStorage {
   constructor() {
     // Use Netlify's persistent storage directory
-    this.storageDir = '/tmp/netlify-analytics';
+    // Try multiple storage locations for persistence across deployments
+    this.storageDir = this.getPersistentStorageDir();
     this.dataFile = path.join(this.storageDir, 'analytics.json');
     this.encryptionKey = process.env.ANALYTICS_ENCRYPTION_KEY || this.generateKey();
     
     // Ensure storage directory exists
     this.ensureStorageDir();
+  }
+
+  getPersistentStorageDir() {
+    // Try multiple storage locations in order of preference
+    const possibleDirs = [
+      // Netlify's persistent storage (if available)
+      '/opt/netlify/analytics',
+      // User home directory (more persistent)
+      path.join(process.env.HOME || '/home/netlify', 'analytics'),
+      // Current working directory (persists across deployments)
+      path.join(process.cwd(), 'analytics-data'),
+      // Fallback to tmp (less persistent but works)
+      '/tmp/netlify-analytics'
+    ];
+
+    for (const dir of possibleDirs) {
+      try {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        // Test write access
+        const testFile = path.join(dir, 'test-write');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        console.log(`📁 Using persistent storage: ${dir}`);
+        return dir;
+      } catch (error) {
+        console.log(`⚠️  Storage location ${dir} not available: ${error.message}`);
+        continue;
+      }
+    }
+
+    // Fallback to tmp if nothing else works
+    console.log('⚠️  Using temporary storage (data may not persist across deployments)');
+    return '/tmp/netlify-analytics';
   }
 
   generateKey() {
@@ -92,37 +128,64 @@ class SecureStorage {
   // Load data from storage
   async loadData() {
     try {
-      if (!fs.existsSync(this.dataFile)) {
-        console.log('📊 No existing analytics data found, starting fresh');
-        return this.getEmptyData();
+      // Try primary storage first
+      if (fs.existsSync(this.dataFile)) {
+        const fileContent = fs.readFileSync(this.dataFile, 'utf8');
+        const data = JSON.parse(fileContent);
+        
+        // Clean up old data (keep only last 30 days)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        
+        if (data.userLogins) {
+          data.userLogins = data.userLogins.filter(login => 
+            new Date(login.login_timestamp) > thirtyDaysAgo
+          );
+        }
+        
+        if (data.showSelections) {
+          data.showSelections = data.showSelections.filter(selection => 
+            new Date(selection.timestamp) > thirtyDaysAgo
+          );
+        }
+        
+        if (data.purchases) {
+          data.purchases = data.purchases.filter(purchase => 
+            new Date(purchase.timestamp) > thirtyDaysAgo
+          );
+        }
+
+        console.log(`📊 Loaded from primary storage: ${data.userLogins?.length || 0} logins, ${data.showSelections?.length || 0} selections, ${data.purchases?.length || 0} purchases`);
+        return data;
       }
 
-      const fileContent = fs.readFileSync(this.dataFile, 'utf8');
-      const data = JSON.parse(fileContent);
-      
-      // Clean up old data (keep only last 30 days)
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      
-      if (data.userLogins) {
-        data.userLogins = data.userLogins.filter(login => 
-          new Date(login.login_timestamp) > thirtyDaysAgo
-        );
-      }
-      
-      if (data.showSelections) {
-        data.showSelections = data.showSelections.filter(selection => 
-          new Date(selection.timestamp) > thirtyDaysAgo
-        );
-      }
-      
-      if (data.purchases) {
-        data.purchases = data.purchases.filter(purchase => 
-          new Date(purchase.timestamp) > thirtyDaysAgo
-        );
+      // Try to recover from backups
+      const backupFiles = [
+        path.join(process.cwd(), 'analytics-backup.json'),
+        path.join(this.storageDir, 'analytics-backup.json'),
+        '/tmp/analytics-backup.json'
+      ];
+
+      for (const backupFile of backupFiles) {
+        try {
+          if (fs.existsSync(backupFile)) {
+            const fileContent = fs.readFileSync(backupFile, 'utf8');
+            const data = JSON.parse(fileContent);
+            console.log(`📊 Recovered analytics data from backup: ${backupFile}`);
+            console.log(`📊 Recovered: ${data.userLogins?.length || 0} logins, ${data.showSelections?.length || 0} selections, ${data.purchases?.length || 0} purchases`);
+            
+            // Restore to primary location
+            await this.saveData(data);
+            console.log('📊 Data restored to primary storage');
+            return data;
+          }
+        } catch (error) {
+          console.log(`⚠️  Backup recovery failed for ${backupFile}: ${error.message}`);
+          continue;
+        }
       }
 
-      console.log(`📊 Loaded ${data.userLogins?.length || 0} logins, ${data.showSelections?.length || 0} selections, ${data.purchases?.length || 0} purchases`);
-      return data;
+      console.log('📊 No existing analytics data found, starting fresh');
+      return this.getEmptyData();
     } catch (error) {
       console.error('Error loading analytics data:', error);
       return this.getEmptyData();
@@ -140,13 +203,35 @@ class SecureStorage {
         encryption: 'AES-256-CBC'
       };
 
-      // Write to file
+      // Write to primary file
       fs.writeFileSync(this.dataFile, JSON.stringify(data, null, 2));
-      console.log('💾 Analytics data saved securely');
+      
+      // Create backups in multiple locations for persistence across deployments
+      await this.createBackups(data);
+      
+      console.log('💾 Analytics data saved securely with backups');
       return true;
     } catch (error) {
       console.error('Error saving analytics data:', error);
       return false;
+    }
+  }
+
+  // Create backups in multiple locations for persistence
+  async createBackups(data) {
+    const backupLocations = [
+      path.join(process.cwd(), 'analytics-backup.json'),
+      path.join(this.storageDir, 'analytics-backup.json'),
+      '/tmp/analytics-backup.json'
+    ];
+
+    for (const backupFile of backupLocations) {
+      try {
+        fs.writeFileSync(backupFile, JSON.stringify(data, null, 2));
+        console.log(`📁 Backup created: ${backupFile}`);
+      } catch (error) {
+        console.log(`⚠️  Backup failed for ${backupFile}: ${error.message}`);
+      }
     }
   }
 
