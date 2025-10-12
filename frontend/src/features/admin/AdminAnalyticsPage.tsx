@@ -40,6 +40,25 @@ interface AnalyticsData {
   }>;
   limitViolations: Array<any>;
   timeframe: string;
+  enhancedAnalytics?: {
+    loginFrequency: { [userId: string]: any };
+    userSessions: { [userId: string]: any };
+    domainActivity: { [domain: string]: any };
+    timePatterns: { [hour: string]: number };
+    eventInteractions: { [eventKey: string]: any };
+    userEventPatterns: { [userId: string]: any };
+    checkoutAttempts: { [userId: string]: any };
+    summary: {
+      totalUniqueUsers: number;
+      totalLogins: number;
+      averageLoginsPerUser: number;
+      mostActiveUsers: Array<[string, any]>;
+      domainBreakdown: Array<{ domain: string; totalLogins: number; uniqueUsers: number }>;
+      peakHours: Array<[string, number]>;
+      eventEngagement: Array<{ eventKey: string; totalViews: number; uniqueUsers: number; averageViewsPerUser: number }>;
+      sameNightCheckouts: Array<{ userId: string; sameNightDates: string[]; totalSameNightAttempts: number }>;
+    };
+  };
 }
 
 export default function AdminAnalyticsPage() {
@@ -48,7 +67,7 @@ export default function AdminAnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'shows' | 'revenue'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'enhanced' | 'users' | 'shows' | 'revenue'>('overview');
 
   // Check if user is authenticated and is admin
   useEffect(() => {
@@ -181,6 +200,7 @@ export default function AdminAnalyticsPage() {
           <nav className="flex space-x-8">
             {[
               { id: 'overview', label: 'Overview', icon: '📊' },
+              { id: 'enhanced', label: 'Enhanced Analytics', icon: '🔍' },
               { id: 'users', label: 'Users', icon: '👥' },
               { id: 'shows', label: 'Shows', icon: '🎭' },
               { id: 'revenue', label: 'Revenue', icon: '💰' }
@@ -409,6 +429,151 @@ export default function AdminAnalyticsPage() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Enhanced Analytics Tab */}
+        {activeTab === 'enhanced' && analyticsData && analyticsData.enhancedAnalytics && (
+          <div className="space-y-8">
+            {/* User Behavior Analysis */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">📊</span>
+                  Login Frequency Analysis
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total Unique Users:</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {analyticsData.enhancedAnalytics.summary.totalUniqueUsers}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Average Logins per User:</span>
+                    <span className="text-xl font-semibold text-green-600">
+                      {analyticsData.enhancedAnalytics.summary.averageLoginsPerUser.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Most Active Users:</h4>
+                    <div className="space-y-2">
+                      {analyticsData.enhancedAnalytics.summary.mostActiveUsers.slice(0, 5).map(([userId, data]) => (
+                        <div key={userId} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                          <span className="text-sm font-medium">{userId}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">{data.totalLogins} logins</span>
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {data.domains.length} domains
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">🌐</span>
+                  Domain Activity
+                </h3>
+                <div className="space-y-3">
+                  {analyticsData.enhancedAnalytics.summary.domainBreakdown.map((domain) => (
+                    <div key={domain.domain} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                      <span className="font-medium text-gray-800">{domain.domain}</span>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-600">{domain.totalLogins} logins</span>
+                        <span className="text-sm text-blue-600">{domain.uniqueUsers} users</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Peak Hours Analysis */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span className="mr-2">⏰</span>
+                Peak Activity Hours
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {analyticsData.enhancedAnalytics.summary.peakHours.map(([hour, count]) => (
+                  <div key={hour} className="text-center bg-blue-50 p-3 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{count}</div>
+                    <div className="text-sm text-gray-600">{hour}:00</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Event Engagement Analysis */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span className="mr-2">🎭</span>
+                Event Engagement Analysis
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {analyticsData.enhancedAnalytics.summary.eventEngagement.map((event) => (
+                  <div key={event.eventKey} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold text-gray-800">
+                        {event.eventKey === 'tue-530' && 'Tuesday 5:30 PM'}
+                        {event.eventKey === 'tue-630' && 'Tuesday 6:30 PM'}
+                        {event.eventKey === 'thu-530' && 'Thursday 5:30 PM'}
+                        {event.eventKey === 'thu-630' && 'Thursday 6:30 PM'}
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Views:</span>
+                        <span className="font-semibold">{event.totalViews}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Users:</span>
+                        <span className="font-semibold">{event.uniqueUsers}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Avg/User:</span>
+                        <span className="font-semibold">{event.averageViewsPerUser.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Same-Night Checkout Analysis */}
+            {analyticsData.enhancedAnalytics.summary.sameNightCheckouts.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">🛒</span>
+                  Same-Night Checkout Attempts
+                </h3>
+                <div className="space-y-3">
+                  {analyticsData.enhancedAnalytics.summary.sameNightCheckouts.map((checkout) => (
+                    <div key={checkout.userId} className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{checkout.userId}</h4>
+                          <p className="text-sm text-gray-600">
+                            Attempted checkout on {checkout.sameNightDates.length} different nights
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-yellow-600">
+                            {checkout.totalSameNightAttempts}
+                          </span>
+                          <p className="text-xs text-gray-500">total attempts</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

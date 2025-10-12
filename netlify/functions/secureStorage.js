@@ -187,14 +187,236 @@ class SecureStorage {
     }
   }
 
-  // Get analytics data
+  // Get enhanced analytics data
   async getAnalytics() {
     try {
-      return await this.loadData();
+      const data = await this.loadData();
+      
+      // Add enhanced analytics
+      const enhancedData = {
+        ...data,
+        enhancedAnalytics: this.calculateEnhancedAnalytics(data)
+      };
+      
+      return enhancedData;
     } catch (error) {
       console.error('Error getting analytics:', error);
       return this.getEmptyData();
     }
+  }
+
+  // Calculate enhanced analytics
+  calculateEnhancedAnalytics(data) {
+    const userLogins = data.userLogins || [];
+    const showSelections = data.showSelections || [];
+    const purchases = data.purchases || [];
+
+    // User login frequency analysis
+    const loginFrequency = {};
+    const userSessions = {};
+    const domainActivity = {};
+    const timePatterns = {};
+
+    userLogins.forEach(login => {
+      const userId = login.user_id;
+      const domain = login.domain;
+      const hour = new Date(login.login_timestamp).getHours();
+      const dayOfWeek = new Date(login.login_timestamp).getDay();
+
+      // Count login frequency per user
+      if (!loginFrequency[userId]) {
+        loginFrequency[userId] = {
+          totalLogins: 0,
+          studentLogins: 0,
+          volunteerLogins: 0,
+          firstLogin: login.login_timestamp,
+          lastLogin: login.login_timestamp,
+          domains: new Set(),
+          sessions: new Set()
+        };
+      }
+
+      loginFrequency[userId].totalLogins++;
+      if (login.user_type === 'student') loginFrequency[userId].studentLogins++;
+      if (login.user_type === 'volunteer') loginFrequency[userId].volunteerLogins++;
+      loginFrequency[userId].domains.add(domain);
+      loginFrequency[userId].sessions.add(login.session_id);
+      loginFrequency[userId].lastLogin = login.login_timestamp;
+
+      // Track user sessions
+      if (!userSessions[userId]) {
+        userSessions[userId] = [];
+      }
+      userSessions[userId].push(login);
+
+      // Domain activity
+      if (!domainActivity[domain]) {
+        domainActivity[domain] = { logins: 0, uniqueUsers: new Set() };
+      }
+      domainActivity[domain].logins++;
+      domainActivity[domain].uniqueUsers.add(userId);
+
+      // Time patterns
+      if (!timePatterns[hour]) timePatterns[hour] = 0;
+      timePatterns[hour]++;
+    });
+
+    // Convert sets to arrays for JSON serialization
+    Object.keys(loginFrequency).forEach(userId => {
+      loginFrequency[userId].domains = Array.from(loginFrequency[userId].domains);
+      loginFrequency[userId].sessions = Array.from(loginFrequency[userId].sessions);
+    });
+
+    Object.keys(domainActivity).forEach(domain => {
+      domainActivity[domain].uniqueUsers = Array.from(domainActivity[domain].uniqueUsers);
+    });
+
+    // Event interaction analysis
+    const eventInteractions = {};
+    const userEventPatterns = {};
+    const checkoutAttempts = {};
+
+    showSelections.forEach(selection => {
+      const userId = selection.user_id;
+      const eventKey = selection.event_key;
+      const timestamp = new Date(selection.timestamp);
+
+      // Track event interactions
+      if (!eventInteractions[eventKey]) {
+        eventInteractions[eventKey] = {
+          totalViews: 0,
+          uniqueUsers: new Set(),
+          hourlyViews: {},
+          userEngagement: {}
+        };
+      }
+
+      eventInteractions[eventKey].totalViews++;
+      eventInteractions[eventKey].uniqueUsers.add(userId);
+
+      const hour = timestamp.getHours();
+      if (!eventInteractions[eventKey].hourlyViews[hour]) {
+        eventInteractions[eventKey].hourlyViews[hour] = 0;
+      }
+      eventInteractions[eventKey].hourlyViews[hour]++;
+
+      // Track user event patterns
+      if (!userEventPatterns[userId]) {
+        userEventPatterns[userId] = {
+          eventsViewed: new Set(),
+          totalViews: 0,
+          firstView: selection.timestamp,
+          lastView: selection.timestamp
+        };
+      }
+
+      userEventPatterns[userId].eventsViewed.add(eventKey);
+      userEventPatterns[userId].totalViews++;
+      userEventPatterns[userId].lastView = selection.timestamp;
+
+      // Track checkout attempts
+      if (!checkoutAttempts[userId]) {
+        checkoutAttempts[userId] = {
+          totalAttempts: 0,
+          eventsAttempted: new Set(),
+          sameNightAttempts: {},
+          ticketQuantities: []
+        };
+      }
+    });
+
+    // Analyze purchases for checkout patterns
+    purchases.forEach(purchase => {
+      const userId = purchase.user_id;
+      const eventKey = purchase.event_key;
+      const timestamp = new Date(purchase.timestamp);
+      const date = timestamp.toDateString();
+
+      if (!checkoutAttempts[userId]) {
+        checkoutAttempts[userId] = {
+          totalAttempts: 0,
+          eventsAttempted: new Set(),
+          sameNightAttempts: {},
+          ticketQuantities: []
+        };
+      }
+
+      checkoutAttempts[userId].totalAttempts++;
+      checkoutAttempts[userId].eventsAttempted.add(eventKey);
+
+      // Track same-night attempts
+      if (!checkoutAttempts[userId].sameNightAttempts[date]) {
+        checkoutAttempts[userId].sameNightAttempts[date] = [];
+      }
+      checkoutAttempts[userId].sameNightAttempts[date].push({
+        eventKey,
+        timestamp: purchase.timestamp,
+        tickets: purchase.metadata?.tickets_purchased || 0,
+        cost: purchase.metadata?.total_cost || 0
+      });
+
+      // Track ticket quantities
+      checkoutAttempts[userId].ticketQuantities.push({
+        eventKey,
+        quantity: purchase.metadata?.tickets_purchased || 0,
+        timestamp: purchase.timestamp
+      });
+    });
+
+    // Convert sets to arrays
+    Object.keys(eventInteractions).forEach(eventKey => {
+      eventInteractions[eventKey].uniqueUsers = Array.from(eventInteractions[eventKey].uniqueUsers);
+    });
+
+    Object.keys(userEventPatterns).forEach(userId => {
+      userEventPatterns[userId].eventsViewed = Array.from(userEventPatterns[userId].eventsViewed);
+    });
+
+    Object.keys(checkoutAttempts).forEach(userId => {
+      checkoutAttempts[userId].eventsAttempted = Array.from(checkoutAttempts[userId].eventsAttempted);
+    });
+
+    // Calculate summary statistics
+    const summary = {
+      totalUniqueUsers: Object.keys(loginFrequency).length,
+      totalLogins: userLogins.length,
+      averageLoginsPerUser: userLogins.length / Math.max(Object.keys(loginFrequency).length, 1),
+      mostActiveUsers: Object.entries(loginFrequency)
+        .sort((a, b) => b[1].totalLogins - a[1].totalLogins)
+        .slice(0, 10),
+      domainBreakdown: Object.entries(domainActivity).map(([domain, data]) => ({
+        domain,
+        totalLogins: data.logins,
+        uniqueUsers: data.uniqueUsers.length
+      })),
+      peakHours: Object.entries(timePatterns)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
+      eventEngagement: Object.entries(eventInteractions).map(([eventKey, data]) => ({
+        eventKey,
+        totalViews: data.totalViews,
+        uniqueUsers: data.uniqueUsers.length,
+        averageViewsPerUser: data.totalViews / Math.max(data.uniqueUsers.length, 1)
+      })),
+      sameNightCheckouts: Object.entries(checkoutAttempts)
+        .filter(([userId, data]) => Object.keys(data.sameNightAttempts).length > 0)
+        .map(([userId, data]) => ({
+          userId,
+          sameNightDates: Object.keys(data.sameNightAttempts),
+          totalSameNightAttempts: Object.values(data.sameNightAttempts).reduce((sum, attempts) => sum + attempts.length, 0)
+        }))
+    };
+
+    return {
+      loginFrequency,
+      userSessions,
+      domainActivity,
+      timePatterns,
+      eventInteractions,
+      userEventPatterns,
+      checkoutAttempts,
+      summary
+    };
   }
 
   // Get empty data structure
