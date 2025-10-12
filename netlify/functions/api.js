@@ -1054,3 +1054,6 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
+// Export the storeLoginInDatabase function for testing
+module.exports.storeLoginInDatabase = storeLoginInDatabase;

@@ -771,9 +771,9 @@ class SecureStorage {
 
   // Calculate session analytics
   calculateSessionAnalytics(data) {
-    const sessions = data.sessions || [];
-    const activities = data.activities || [];
-    const userLogins = data.userLogins || [];
+    const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    const activities = Array.isArray(data.activities) ? data.activities : [];
+    const userLogins = Array.isArray(data.userLogins) ? data.userLogins : [];
 
     const sessionAnalytics = {
       totalSessions: sessions.length,

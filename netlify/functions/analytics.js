@@ -112,7 +112,7 @@ exports.handler = async (event, context) => {
         
         // Get show selections and purchases data
         const showSelections = await new Promise((resolve, reject) => {
-          const query = `SELECT * FROM show_selections ${timeFilterSQL.replace('login_timestamp', 'timestamp')} ORDER BY timestamp DESC`;
+          const query = `SELECT * FROM show_selections ${timeFilterSQL.replace('login_timestamp', 'selection_timestamp')} ORDER BY selection_timestamp DESC`;
           db.all(query, [], (err, rows) => {
             if (err) reject(err);
             else resolve(rows);
@@ -120,7 +120,7 @@ exports.handler = async (event, context) => {
         });
         
         const purchases = await new Promise((resolve, reject) => {
-          const query = `SELECT * FROM purchases ${timeFilterSQL.replace('login_timestamp', 'timestamp')} ORDER BY timestamp DESC`;
+          const query = `SELECT * FROM purchases ${timeFilterSQL.replace('login_timestamp', 'purchase_timestamp')} ORDER BY purchase_timestamp DESC`;
           db.all(query, [], (err, rows) => {
             if (err) reject(err);
             else resolve(rows);
@@ -131,7 +131,7 @@ exports.handler = async (event, context) => {
         let filteredSelections = showSelections;
         if (timeFilter) {
           filteredSelections = showSelections.filter(selection => {
-            const selectionTime = new Date(selection.timestamp || selection.selection_timestamp);
+            const selectionTime = new Date(selection.selection_timestamp);
             return selectionTime >= timeFilter;
           });
         }
@@ -140,7 +140,7 @@ exports.handler = async (event, context) => {
         let filteredPurchases = purchases;
         if (timeFilter) {
           filteredPurchases = purchases.filter(purchase => {
-            const purchaseTime = new Date(purchase.timestamp || purchase.purchase_timestamp);
+            const purchaseTime = new Date(purchase.purchase_timestamp);
             return purchaseTime >= timeFilter;
           });
         }
@@ -148,27 +148,27 @@ exports.handler = async (event, context) => {
         // Calculate show breakdown from actual data
         const showBreakdown = {
           'tue-530': { 
-            selections: filteredSelections.filter(s => s.event_key?.includes('tue-530')).length,
-            purchases: filteredPurchases.filter(p => p.event_key?.includes('tue-530')).length,
-            revenue: filteredPurchases.filter(p => p.event_key?.includes('tue-530')).reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.show_id?.includes('tue-530')).length,
+            purchases: filteredPurchases.filter(p => p.show_id?.includes('tue-530')).length,
+            revenue: filteredPurchases.filter(p => p.show_id?.includes('tue-530')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             conversion_rate: 0
           },
           'tue-630': { 
-            selections: filteredSelections.filter(s => s.event_key?.includes('tue-630')).length,
-            purchases: filteredPurchases.filter(p => p.event_key?.includes('tue-630')).length,
-            revenue: filteredPurchases.filter(p => p.event_key?.includes('tue-630')).reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.show_id?.includes('tue-630')).length,
+            purchases: filteredPurchases.filter(p => p.show_id?.includes('tue-630')).length,
+            revenue: filteredPurchases.filter(p => p.show_id?.includes('tue-630')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             conversion_rate: 0
           },
           'thu-530': { 
-            selections: filteredSelections.filter(s => s.event_key?.includes('thu-530')).length,
-            purchases: filteredPurchases.filter(p => p.event_key?.includes('thu-530')).length,
-            revenue: filteredPurchases.filter(p => p.event_key?.includes('thu-530')).reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.show_id?.includes('thu-530')).length,
+            purchases: filteredPurchases.filter(p => p.show_id?.includes('thu-530')).length,
+            revenue: filteredPurchases.filter(p => p.show_id?.includes('thu-530')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             conversion_rate: 0
           },
           'thu-630': { 
-            selections: filteredSelections.filter(s => s.event_key?.includes('thu-630')).length,
-            purchases: filteredPurchases.filter(p => p.event_key?.includes('thu-630')).length,
-            revenue: filteredPurchases.filter(p => p.event_key?.includes('thu-630')).reduce((sum, p) => sum + (p.metadata?.total_cost || 0), 0),
+            selections: filteredSelections.filter(s => s.show_id?.includes('thu-630')).length,
+            purchases: filteredPurchases.filter(p => p.show_id?.includes('thu-630')).length,
+            revenue: filteredPurchases.filter(p => p.show_id?.includes('thu-630')).reduce((sum, p) => sum + (p.total_cost || 0), 0),
             conversion_rate: 0
           }
         };
@@ -207,7 +207,7 @@ exports.handler = async (event, context) => {
         // Calculate totals from actual data
         const totalShowSelections = filteredSelections.length;
         const totalPurchases = filteredPurchases.length;
-        const totalRevenue = filteredPurchases.reduce((sum, purchase) => sum + (purchase.metadata?.total_cost || 0), 0);
+        const totalRevenue = filteredPurchases.reduce((sum, purchase) => sum + (purchase.total_cost || 0), 0);
         
         // Close database connection
         db.close();
