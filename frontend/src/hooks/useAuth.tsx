@@ -3,7 +3,8 @@ import jwtDecode from 'jwt-decode';
 
 interface User {
   householdId: string;
-  studentId: string;
+  studentId?: string;
+  volunteerCode?: string;
   isVolunteer: boolean;
 }
 
@@ -11,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (studentId: string) => Promise<boolean>;
+  volunteerLogin: (volunteerCode: string, email: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -32,9 +34,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (storedToken) {
       try {
         // Try to decode as JWT first, then fall back to simple base64
-        let decoded: { householdId: string; studentId: string; exp: number };
+        let decoded: { householdId: string; studentId?: string; volunteerCode?: string; isVolunteer?: boolean; exp: number };
         try {
-          decoded = jwtDecode<{ householdId: string; studentId: string; exp: number }>(storedToken);
+          decoded = jwtDecode<{ householdId: string; studentId?: string; volunteerCode?: string; isVolunteer?: boolean; exp: number }>(storedToken);
         } catch {
           // Fall back to simple base64 decoding
           decoded = JSON.parse(atob(storedToken));
@@ -45,7 +47,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser({
             householdId: decoded.householdId,
             studentId: decoded.studentId,
-            isVolunteer: false
+            volunteerCode: decoded.volunteerCode,
+            isVolunteer: decoded.isVolunteer || false
           });
         } else {
           localStorage.removeItem('token');
@@ -66,6 +69,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const mockToken = btoa(JSON.stringify({
           studentId: studentId.trim(),
           householdId: `HH_${studentId.trim()}`,
+          isVolunteer: false,
           exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         }));
         
@@ -86,6 +90,62 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const volunteerLogin = async (volunteerCode: string, email: string): Promise<boolean> => {
+    try {
+      if (import.meta.env.PROD) {
+        // Production mode - simple frontend-only authentication
+        if (volunteerCode && email && volunteerCode.trim().length === 6 && email.trim().length > 0) {
+          const mockToken = btoa(JSON.stringify({
+            volunteerCode: volunteerCode.trim(),
+            householdId: `VOL_${volunteerCode.trim()}`,
+            isVolunteer: true,
+            exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          }));
+          
+          setToken(mockToken);
+          setUser({
+            householdId: `VOL_${volunteerCode.trim()}`,
+            volunteerCode: volunteerCode.trim(),
+            isVolunteer: true
+          });
+          
+          localStorage.setItem('token', mockToken);
+          return true;
+        }
+        return false;
+      } else {
+        // Development mode - use API
+        const response = await fetch('/api/volunteer-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            volunteerCode: volunteerCode.trim(),
+            email: email.trim()
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setToken(data.token);
+          setUser({
+            householdId: data.householdId,
+            volunteerCode: volunteerCode.trim(),
+            isVolunteer: true
+          });
+          localStorage.setItem('token', data.token);
+          return true;
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('Volunteer login error:', error);
+      return false;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -93,7 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, volunteerLogin, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

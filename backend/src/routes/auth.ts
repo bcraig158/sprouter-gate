@@ -29,6 +29,11 @@ interface LoginRequest {
   studentId: string;
 }
 
+interface VolunteerLoginRequest {
+  volunteerCode: string;
+  email: string;
+}
+
 interface LoginResponse {
   success: boolean;
   token?: string;
@@ -158,6 +163,91 @@ router.post('/login', async (req: express.Request, res: express.Response): Promi
     res.json(response);
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+});
+
+// POST /api/volunteer-login
+router.post('/volunteer-login', async (req: express.Request, res: express.Response): Promise<void> => {
+  try {
+    const { volunteerCode, email }: VolunteerLoginRequest = req.body;
+
+    if (!volunteerCode || !email) {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Volunteer code and email are required' 
+      });
+      return;
+    }
+
+    // Load volunteer codes from JSON file
+    const fs = require('fs');
+    const path = require('path');
+    const volunteerCodesPath = path.join(__dirname, '../../../volunteer-codes.json');
+    
+    if (!fs.existsSync(volunteerCodesPath)) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Volunteer codes not found' 
+      });
+      return;
+    }
+
+    const volunteerCodes = JSON.parse(fs.readFileSync(volunteerCodesPath, 'utf-8'));
+    
+    // Find volunteer by code and email
+    const volunteer = volunteerCodes.find((v: any) => 
+      v.code === volunteerCode && v.email.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!volunteer) {
+      res.status(404).json({ 
+        success: false, 
+        message: 'Invalid volunteer code or email' 
+      });
+      return;
+    }
+
+    // Generate JWT token for volunteer
+    const volunteerHouseholdId = `VOL_${volunteerCode}`;
+    const token = jwt.sign(
+      { 
+        householdId: volunteerHouseholdId,
+        volunteerCode: volunteerCode,
+        isVolunteer: true
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Create session for volunteer
+    const sessionId = bcrypt.hashSync(volunteerHouseholdId + Date.now(), 10);
+    const expiresAt = DateTime.now().plus({ hours: 24 }).toISO();
+
+    await runQuery(
+      'INSERT INTO sessions (session_id, household_id, expires_at) VALUES (?, ?, ?)',
+      [sessionId, volunteerHouseholdId, expiresAt]
+    );
+
+    // Log the volunteer login
+    await runQuery(
+      'INSERT INTO audit_log (household_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
+      [volunteerHouseholdId, 'volunteer_login', `Volunteer: ${volunteer.name} (${volunteer.email})`, req.ip]
+    );
+
+    const response: LoginResponse = {
+      success: true,
+      token,
+      householdId: volunteerHouseholdId,
+      isVolunteer: true
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Volunteer login error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Internal server error' 
