@@ -76,7 +76,7 @@ async function initDatabase() {
       )
     `);
 
-    // Import all students from CSV data
+    // Import all 459 students from database
     const students = [
       { student_id: '33727', household_id: 'HH_33727' },
       { student_id: '39444', household_id: 'HH_39444' },
@@ -341,19 +341,26 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Check all volunteers in database
-      const allVolunteers = await getQuery(`
-        SELECT * FROM volunteer_codes
-      `);
-      console.log('All volunteers in database:', allVolunteers);
+      // Load volunteer codes from JSON file
+      const fs = require('fs');
+      const path = require('path');
+      const volunteerCodesPath = path.join(__dirname, '../../volunteer-codes.json');
+      
+      let volunteerCodes = [];
+      try {
+        if (fs.existsSync(volunteerCodesPath)) {
+          volunteerCodes = JSON.parse(fs.readFileSync(volunteerCodesPath, 'utf-8'));
+        } else {
+          console.error('Volunteer codes file not found at:', volunteerCodesPath);
+        }
+      } catch (error) {
+        console.error('Error loading volunteer codes:', error);
+      }
 
-      // Find volunteer
-      const volunteer = await getQuery(
-        'SELECT * FROM volunteer_codes WHERE code = ? AND email = ?',
-        [volunteerCode.trim(), email.trim().toLowerCase()]
+      // Find volunteer by code and email
+      const volunteer = volunteerCodes.find((v) => 
+        v.code === volunteerCode.trim() && v.email.toLowerCase() === email.trim().toLowerCase()
       );
-
-      console.log('Found volunteer:', volunteer);
 
       if (!volunteer) {
         console.log(`❌ Invalid volunteer login attempt: ${volunteerCode} / ${email}`);
