@@ -5,6 +5,35 @@ import api from '../../services/api';
 import { formatDateTime, getTimeUntilEvent } from '../../utils/dateUtils';
 import { getMockState } from '../../utils/mockData';
 
+// FAQ Item Component
+const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border border-gray-200 rounded-lg">
+      <button
+        className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="font-medium text-gray-800">{question}</span>
+        <svg
+          className={`w-5 h-5 text-gray-500 transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-3 text-gray-600 text-sm leading-relaxed">
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Event {
   key: string;
   name: string;
@@ -558,181 +587,186 @@ export default function VolunteerSelectPage() {
           )}
         </div>
 
-        {/* Comprehensive Q&A Section */}
-        <div className="max-w-4xl mx-auto mt-12 bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center flex items-center justify-center">
-            <svg className="w-6 h-6 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            📋 COMPLETE Q&A - VOLUNTEER TICKETS
-          </h3>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* BASICS Section */}
+        {/* Q&A Section */}
+        <div className="max-w-4xl mx-auto mt-12">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Frequently Asked Questions</h2>
+              <p className="text-gray-600">Everything you need to know about volunteer ticket purchases</p>
+            </div>
+            
             <div className="space-y-4">
-              <h4 className="text-lg font-bold text-blue-800 border-b-2 border-blue-200 pb-2">BASICS</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: I'm volunteering - do I get tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Yes! As a thank you, you can reserve up to 4 tickets per show to WATCH with your family (not for the show you're working).</p>
+              {/* Q&A Categories */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Basics & Rules */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Basics & Rules</h3>
+                  
+                  <FAQItem 
+                    question="I'm volunteering - do I get tickets?"
+                    answer="Yes! As a thank you, you can reserve up to 4 tickets per show to WATCH with your family (not for the show you're working)."
+                  />
+                  
+                  <FAQItem 
+                    question="Do I need a ticket for the show I'm volunteering at?"
+                    answer="No! You'll be working during that show, so you don't need tickets for it. Your tickets are for OTHER shows you want to watch."
+                  />
+                  
+                  <FAQItem 
+                    question="How many tickets do I get?"
+                    answer="You can get up to 4 tickets per show you attend: 2 regular tickets (Reserved or GA) + 2 bonus volunteer tickets (GA only)."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I attend multiple shows?"
+                    answer="Yes! You can select one show per night: One show on October 28 (either 5:30 PM OR 6:30 PM) and one show on October 30 (either 5:30 PM OR 6:30 PM)."
+                  />
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Do I need a ticket for the show I'm volunteering at?</p>
-                  <p className="text-gray-600 text-sm">A: No! You'll be working during that show, so you don't need tickets for it. Your tickets are for OTHER shows you want to watch.</p>
+
+                {/* Ticket Options & Pricing */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Ticket Options & Pricing</h3>
+                  
+                  <FAQItem 
+                    question="What's the difference between my regular and bonus tickets?"
+                    answer="Regular tickets (2): Can be Reserved Seating ($25) or General Admission (FREE). Bonus tickets (2): Must be General Admission (FREE) - this is your volunteer thank you!"
+                  />
+                  
+                  <FAQItem 
+                    question="What are my ticket options?"
+                    answer="You have two options at checkout: All Free: 4 General Admission tickets (FREE) or Mixed: 2 Reserved Seats ($25 each) + 2 General Admission (FREE)."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I get 4 reserved seats?"
+                    answer="No. Your 2 bonus volunteer tickets must be General Admission. You can only purchase up to 2 reserved seats (using your regular ticket allocation)."
+                  />
+                  
+                  <FAQItem 
+                    question="How much do I pay?"
+                    answer="It depends on your ticket selection: 4 GA tickets: FREE ($0) or 2 Reserved + 2 GA: $50 ($25 × 2 reserved seats)."
+                  />
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: How many tickets do I get?</p>
-                  <p className="text-gray-600 text-sm">A: You can get up to 4 tickets per show you attend:<br/>• 2 regular tickets (Reserved or GA)<br/>• 2 bonus volunteer tickets (GA only)</p>
+
+                {/* Show Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Show Selection</h3>
+                  
+                  <FAQItem 
+                    question="Can I attend both shows on the same night?"
+                    answer="No. Just like regular families, you can only select ONE show per night (either 5:30 PM OR 6:30 PM)."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I attend shows on both October 28 AND October 30?"
+                    answer="Yes! You can select: One show on October 28 (up to 4 tickets) and one show on October 30 (up to 4 tickets). Total: Up to 8 tickets across both nights."
+                  />
+                  
+                  <FAQItem 
+                    question="What if my volunteer shift is Tuesday 5:30 PM?"
+                    answer="You can attend: Tuesday 6:30 PM (up to 4 tickets), OR Thursday 5:30 PM (up to 4 tickets), OR Thursday 6:30 PM (up to 4 tickets). Or shows on both nights!"
+                  />
+                  
+                  <FAQItem 
+                    question="What if I only need 2 tickets?"
+                    answer="That's fine! You can choose to use just your 2 regular tickets and skip the bonus tickets if you don't need them."
+                  />
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I attend multiple shows?</p>
-                  <p className="text-gray-600 text-sm">A: Yes! You can select one show per night:<br/>• One show on October 28 (either 5:30 PM OR 6:30 PM)<br/>• One show on October 30 (either 5:30 PM OR 6:30 PM)</p>
+
+                {/* Family & Children */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Family & Children</h3>
+                  
+                  <FAQItem 
+                    question="Do my young children need tickets?"
+                    answer="Children 2 and under who sit on a lap don't need tickets. Everyone else (age 3+) needs a ticket."
+                  />
+                  
+                  <FAQItem 
+                    question="I have 5 family members - can I get more than 4 tickets?"
+                    answer="Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact us at maiduelementaryptc@gmail.com or call 916-749-0848 to discuss options, subject to availability."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I bring guests who aren't family?"
+                    answer="Yes! Your tickets can be used by anyone you choose."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I get a refund?"
+                    answer="Yes, refunds are available up to 2 days (48 hours) before each show. After that, no refunds."
+                  />
+                </div>
+
+                {/* Volunteer Duties */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Volunteer Duties</h3>
+                  
+                  <FAQItem 
+                    question="When is my volunteer shift?"
+                    answer="Check your volunteer confirmation email for your specific shift date and time. You'll receive separate instructions about your volunteer duties."
+                  />
+                  
+                  <FAQItem 
+                    question="What will I be doing as a volunteer?"
+                    answer="You'll be helping in classrooms with students during the show. We'll send detailed instructions closer to the event."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I watch part of the show I'm volunteering for?"
+                    answer="Your volunteer assignment will keep you busy during that show. Use your tickets to watch a different show time!"
+                  />
+                </div>
+
+                {/* Technical Questions */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">Technical Questions</h3>
+                  
+                  <FAQItem 
+                    question="Can I purchase tickets on my phone?"
+                    answer="Yes! The volunteer portal works on all devices - phones, tablets, and computers."
+                  />
+                  
+                  <FAQItem 
+                    question="I'm having trouble with checkout - help!"
+                    answer="Try refreshing the page, using a different browser, checking your internet connection, or contacting us at maiduelementaryptc@gmail.com or call 916-749-0848."
+                  />
+                  
+                  <FAQItem 
+                    question="Can I change my ticket selection after purchase?"
+                    answer="Refunds are available up to 48 hours before the show. For changes, you'll need to request a refund and make a new purchase (subject to availability)."
+                  />
+                  
+                  <FAQItem 
+                    question="When will I receive my tickets?"
+                    answer="Digital tickets will be emailed to you immediately after checkout. Show them on your phone at the door."
+                  />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  Still have questions?
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
+                    <p className="text-gray-600">📧 <a href="mailto:maiduelementaryptc@gmail.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a></p>
+                    <p className="text-gray-600">📞 916-749-0848</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-700 mb-2">Event Location:</p>
+                    <p className="text-gray-600">📍 Maidu Elementary School</p>
+                    <p className="text-gray-600">1950 Johnson Ranch Drive</p>
+                    <p className="text-gray-600">Roseville, CA 95661</p>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* TICKET SELECTION Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-green-800 border-b-2 border-green-200 pb-2">TICKET SELECTION</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What's the difference between my "regular" and "bonus" tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Regular tickets (2): Can be Reserved Seating ($25) or General Admission (FREE)<br/>Bonus tickets (2): Must be General Admission (FREE) - this is your volunteer thank you!</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What are my ticket options?</p>
-                  <p className="text-gray-600 text-sm">A: You have two options at checkout:<br/>• All Free: 4 General Admission tickets (FREE)<br/>• Mixed: 2 Reserved Seats ($25 each) + 2 General Admission (FREE)</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I get 4 reserved seats?</p>
-                  <p className="text-gray-600 text-sm">A: No. Your 2 bonus volunteer tickets must be General Admission. You can only purchase up to 2 reserved seats (using your regular ticket allocation).</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What if I only need 2 tickets?</p>
-                  <p className="text-gray-600 text-sm">A: That's fine! You can choose to use just your 2 regular tickets and skip the bonus tickets if you don't need them.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* SHOW SELECTION Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-purple-800 border-b-2 border-purple-200 pb-2">SHOW SELECTION</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I attend both shows on the same night?</p>
-                  <p className="text-gray-600 text-sm">A: No. Just like regular families, you can only select ONE show per night (either 5:30 PM OR 6:30 PM).</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I attend shows on both October 28 AND October 30?</p>
-                  <p className="text-gray-600 text-sm">A: Yes! You can select:<br/>• One show on October 28 (up to 4 tickets)<br/>• One show on October 30 (up to 4 tickets)<br/>Total: Up to 8 tickets across both nights</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What if my volunteer shift is Tuesday 5:30 PM?</p>
-                  <p className="text-gray-600 text-sm">A: You can attend:<br/>• Tuesday 6:30 PM (up to 4 tickets), OR<br/>• Thursday 5:30 PM (up to 4 tickets), OR<br/>• Thursday 6:30 PM (up to 4 tickets)<br/>Or shows on both nights!</p>
-                </div>
-              </div>
-            </div>
-
-
-            {/* CHECKOUT & PAYMENT Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-red-800 border-b-2 border-red-200 pb-2">CHECKOUT & PAYMENT</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: How much do I pay?</p>
-                  <p className="text-gray-600 text-sm">A: It depends on your ticket selection:<br/>• 4 GA tickets: FREE ($0)<br/>• 2 Reserved + 2 GA: $50 ($25 × 2 reserved seats)</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Do I pay separately for each show?</p>
-                  <p className="text-gray-600 text-sm">A: Yes. If you're attending shows on both October 28 and October 30, you'll complete separate checkouts for each night.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I get a refund?</p>
-                  <p className="text-gray-600 text-sm">A: Yes, refunds are available up to 2 days (48 hours) before each show. After that, no refunds.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: When will I receive my tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Digital tickets will be emailed to you immediately after checkout. Show them on your phone at the door.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* FAMILY & CHILDREN Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-indigo-800 border-b-2 border-indigo-200 pb-2">FAMILY & CHILDREN</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Do my young children need tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Children 2 and under who sit on a lap don't need tickets. Everyone else (age 3+) needs a ticket.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: I have 5 family members - can I get more than 4 tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a> to discuss options, subject to availability.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I bring guests who aren't family?</p>
-                  <p className="text-gray-600 text-sm">A: Yes! Your tickets can be used by anyone you choose.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* VOLUNTEER DUTIES Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-teal-800 border-b-2 border-teal-200 pb-2">VOLUNTEER DUTIES</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: When is my volunteer shift?</p>
-                  <p className="text-gray-600 text-sm">A: Check your volunteer confirmation email for your specific shift date and time. You'll receive separate instructions about your volunteer duties.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: What will I be doing as a volunteer?</p>
-                  <p className="text-gray-600 text-sm">A: You'll be helping in classrooms with students during the show. We'll send detailed instructions closer to the event.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I watch part of the show I'm volunteering for?</p>
-                  <p className="text-gray-600 text-sm">A: Your volunteer assignment will keep you busy during that show. Use your tickets to watch a different show time!</p>
-                </div>
-              </div>
-            </div>
-
-            {/* TECHNICAL QUESTIONS Section */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-bold text-pink-800 border-b-2 border-pink-200 pb-2">TECHNICAL QUESTIONS</h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I purchase tickets on my phone?</p>
-                  <p className="text-gray-600 text-sm">A: Yes! The volunteer portal works on all devices - phones, tablets, and computers.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: I'm having trouble with checkout - help!</p>
-                  <p className="text-gray-600 text-sm">A: Try refreshing the page, using a different browser, checking your internet connection, or contacting us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a>.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Q: Can I change my ticket selection after purchase?</p>
-                  <p className="text-gray-600 text-sm">A: Refunds are available up to 48 hours before the show. For changes, you'll need to request a refund and make a new purchase (subject to availability).</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="mt-8 pt-6 border-t-2 border-gray-200 text-center">
-            <p className="text-gray-600 text-sm">
-              <span className="inline-flex items-center space-x-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span>Still have questions?</span>
-              </span>
-              <br />
-                <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-                Contact us at maiduelementaryptc@gmail.com
-              </a>
-              <br />
-              <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-                Or call 916-749-0848
-              </a>
-            </p>
           </div>
         </div>
       </div>

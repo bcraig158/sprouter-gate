@@ -669,7 +669,6 @@ export default function SelectPage() {
                     <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
                     <p className="text-gray-600">📧 <a href="mailto:maiduelementaryptc@gmail.com" className="text-purple-600 hover:text-purple-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a></p>
                     <p className="text-gray-600">📞 916-749-0848</p>
-                    <p className="text-gray-600">👥 Lauren McGhee or Lauren Deary</p>
                   </div>
                   <div>
                     <p className="font-medium text-gray-700 mb-2">Event Location:</p>
