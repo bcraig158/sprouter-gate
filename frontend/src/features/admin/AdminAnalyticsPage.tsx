@@ -1287,8 +1287,8 @@ export default function AdminAnalyticsPage() {
                         {violation.login_count && (
                           <p><strong>Logins:</strong> {violation.login_count} in 24h</p>
                         )}
-                        {violation.ip_address && (
-                          <p><strong>IP:</strong> {violation.ip_address}</p>
+                        {violation.ip_hash && (
+                          <p><strong>IP:</strong> {violation.ip_hash}</p>
                         )}
                         {violation.unique_users && (
                           <p><strong>Users from IP:</strong> {violation.unique_users}</p>

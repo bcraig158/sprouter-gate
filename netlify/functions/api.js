@@ -701,7 +701,7 @@ async function detectAllMultipleLogins() {
           logins: logins.map(l => ({
             timestamp: l.login_timestamp,
             domain: l.domain,
-            ip_address: l.ip_address
+            ip_hash: l.ip_hash
           })),
           timestamp: new Date().toISOString()
         });
@@ -729,7 +729,7 @@ async function detectIPSharing() {
     
     const ipLoginCounts = {};
     recentLogins.forEach(login => {
-      const ip = login.ip_address || 'unknown';
+      const ip = login.ip_hash || 'unknown';
       if (!ipLoginCounts[ip]) {
         ipLoginCounts[ip] = [];
       }
@@ -852,7 +852,8 @@ exports.handler = async (event, context) => {
     
     // Student login
     if (route === '/login' && httpMethod === 'POST') {
-      const { studentId } = JSON.parse(body);
+      try {
+        const { studentId } = JSON.parse(body);
       
       if (!studentId) {
         return {
@@ -920,11 +921,22 @@ exports.handler = async (event, context) => {
           isVolunteer: false
         })
       };
+      } catch (error) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Invalid JSON in request body' 
+          })
+        };
+      }
     }
     
     // Volunteer login
     if (route === '/volunteer-login' && httpMethod === 'POST') {
-      const { volunteerCode, email } = JSON.parse(body);
+      try {
+        const { volunteerCode, email } = JSON.parse(body);
       
       if (!volunteerCode || !email) {
         return {
@@ -999,6 +1011,16 @@ exports.handler = async (event, context) => {
           isAdmin: isAdmin
         })
       };
+      } catch (error) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Invalid JSON in request body' 
+          })
+        };
+      }
     }
     
     // Track event interaction
@@ -1144,7 +1166,7 @@ exports.handler = async (event, context) => {
             totalPurchases,
             totalRevenue,
             domainBreakdown,
-            sessionCount: Object.keys(analyticsData.sessions || {}).length,
+            sessionCount: (analyticsData.sessions || []).length,
             recentActivity: analyticsData.userLogins.slice(-10).map(login => ({
               activity_type: 'login',
               activity_details: `${login.user_type} login: ${login.identifier}`,
