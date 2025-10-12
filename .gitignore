@@ -15,9 +15,12 @@ build/
 */dist/
 */build/
 
-# Database files
+# Database files (except production databases)
 *.sqlite
-*.db
+# Allow specific production database files
+!backend/data/sprouter_events.db
+!netlify/functions/backend/data/sprouter_events.db
+!netlify/functions/sprouter_events.db
 data/
 
 # Logs
