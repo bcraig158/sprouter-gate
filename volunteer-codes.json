@@ -224,5 +224,11 @@
     "name": "Monica Noda-Ruiz",
     "email": "noda.monica@gmail.com",
     "code": "670569"
+  },
+  {
+    "name": "Admin",
+    "email": "admin@maidu.com",
+    "code": "339933",
+    "notes": "System Administrator"
   }
 ]

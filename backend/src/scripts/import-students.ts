@@ -1,9 +1,6 @@
-import { Database } from 'sqlite';
+import { runQuery, getQuery } from '../db';
 import path from 'path';
 import fs from 'fs';
-import bcrypt from 'bcrypt';
-
-const DB_PATH = process.env.DATABASE_PATH || './data/sprouter_events.db';
 
 interface StudentData {
   studentId: string;
@@ -23,8 +20,6 @@ const sampleStudents: StudentData[] = [
 ];
 
 async function importStudents() {
-  const db = new Database(DB_PATH);
-  
   try {
     console.log('Starting student import...');
     
@@ -33,20 +28,20 @@ async function importStudents() {
       const householdId = `HH_${student.studentId}`;
       
       // Check if student already exists
-      const existingStudent = await db.get('SELECT id FROM students WHERE student_id = ?', [student.studentId]);
+      const existingStudent = await getQuery('SELECT id FROM students WHERE student_id = ?', [student.studentId]);
       
       if (!existingStudent) {
         // Insert student
-        await db.run(`
+        await runQuery(`
           INSERT INTO students (student_id, household_id) 
           VALUES (?, ?)
         `, [student.studentId, householdId]);
         
         // Insert household if it doesn't exist
-        const existingHousehold = await db.get('SELECT id FROM households WHERE household_id = ?', [householdId]);
+        const existingHousehold = await getQuery('SELECT id FROM households WHERE household_id = ?', [householdId]);
         
         if (!existingHousehold) {
-          await db.run(`
+          await runQuery(`
             INSERT INTO households (household_id, volunteer_redeemed) 
             VALUES (?, FALSE)
           `, [householdId]);
@@ -61,8 +56,8 @@ async function importStudents() {
     console.log('Student import completed successfully!');
     
     // Display summary
-    const studentCount = await db.get('SELECT COUNT(*) as count FROM students');
-    const householdCount = await db.get('SELECT COUNT(*) as count FROM households');
+    const studentCount = await getQuery('SELECT COUNT(*) as count FROM students');
+    const householdCount = await getQuery('SELECT COUNT(*) as count FROM households');
     
     console.log(`Total students: ${studentCount?.count || 0}`);
     console.log(`Total households: ${householdCount?.count || 0}`);
@@ -70,15 +65,11 @@ async function importStudents() {
   } catch (error) {
     console.error('Error importing students:', error);
     throw error;
-  } finally {
-    await db.close();
   }
 }
 
 // Function to add volunteer codes
 async function addVolunteerCodes() {
-  const db = new Database(DB_PATH);
-  
   try {
     const volunteerCodes = [
       'VOLUNTEER2024',
@@ -90,7 +81,7 @@ async function addVolunteerCodes() {
     
     for (const code of volunteerCodes) {
       try {
-        await db.run(`
+        await runQuery(`
           INSERT OR IGNORE INTO volunteer_codes (code) 
           VALUES (?)
         `, [code]);
@@ -104,8 +95,6 @@ async function addVolunteerCodes() {
   } catch (error) {
     console.error('Error setting up volunteer codes:', error);
     throw error;
-  } finally {
-    await db.close();
   }
 }
 

@@ -1,8 +1,6 @@
-import { Database } from 'sqlite';
+import { runQuery, getQuery } from '../db';
 import fs from 'fs';
 import path from 'path';
-
-const DB_PATH = process.env.DATABASE_PATH || './data/sprouter_events.db';
 
 interface CSVStudent {
   student_id: string;
@@ -42,8 +40,6 @@ function parseCSV(csvContent: string): CSVStudent[] {
 }
 
 async function importFromCSV(csvFilePath: string) {
-  const db = new Database(DB_PATH);
-  
   try {
     console.log(`Reading CSV file: ${csvFilePath}`);
     const csvContent = fs.readFileSync(csvFilePath, 'utf-8');
@@ -59,23 +55,23 @@ async function importFromCSV(csvFilePath: string) {
       const householdId = `HH_${student.student_id}`;
       
       // Check if student already exists
-      const existingStudent = await db.prepare('SELECT id FROM students WHERE student_id = ?').get(student.student_id);
+      const existingStudent = await getQuery('SELECT id FROM students WHERE student_id = ?', [student.student_id]);
       
       if (!existingStudent) {
         // Insert student
-        await db.prepare(`
+        await runQuery(`
           INSERT INTO students (student_id, household_id) 
           VALUES (?, ?)
-        `).run(student.student_id, householdId);
+        `, [student.student_id, householdId]);
         
         // Insert household if it doesn't exist
-        const existingHousehold = await db.prepare('SELECT id FROM households WHERE household_id = ?').get(householdId);
+        const existingHousehold = await getQuery('SELECT id FROM households WHERE household_id = ?', [householdId]);
         
         if (!existingHousehold) {
-          await db.prepare(`
+          await runQuery(`
             INSERT INTO households (household_id, volunteer_redeemed) 
             VALUES (?, FALSE)
-          `).run(householdId);
+          `, [householdId]);
         }
         
         console.log(`✓ Imported: ${student.student_id} (${student.teacher || 'No teacher'})`);
@@ -92,8 +88,8 @@ async function importFromCSV(csvFilePath: string) {
     console.log(`Total processed: ${students.length} students`);
     
     // Display final counts
-    const studentCount = await db.prepare('SELECT COUNT(*) as count FROM students').get();
-    const householdCount = await db.prepare('SELECT COUNT(*) as count FROM households').get();
+    const studentCount = await getQuery('SELECT COUNT(*) as count FROM students');
+    const householdCount = await getQuery('SELECT COUNT(*) as count FROM households');
     
     console.log(`\nDatabase totals:`);
     console.log(`- Students: ${studentCount?.count || 0}`);
@@ -102,8 +98,6 @@ async function importFromCSV(csvFilePath: string) {
   } catch (error) {
     console.error('Error importing from CSV:', error);
     throw error;
-  } finally {
-    await db.close();
   }
 }
 

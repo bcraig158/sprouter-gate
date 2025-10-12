@@ -44,20 +44,46 @@ interface AnalyticsData {
   totalPurchases: number;
   totalRevenue: number;
   showBreakdown: {
-    tue530: { selections: number; purchases: number; revenue: number };
-    tue630: { selections: number; purchases: number; revenue: number };
-    thu530: { selections: number; purchases: number; revenue: number };
-    thu630: { selections: number; purchases: number; revenue: number };
+    [key: string]: {
+      show_date: string;
+      show_time: string;
+      selections: number;
+      purchase_intents: number;
+      purchases: number;
+      sprouter_successes: number;
+      revenue: number;
+      conversion_rate: number;
+    };
   };
-  recentActivity: (LoginRecord | ShowSelection | PurchaseRecord)[];
+  recentActivity: Array<{
+    activity_type: string;
+    activity_details: string;
+    show_id?: string;
+    activity_timestamp: string;
+    user_id: string;
+    user_type: string;
+    metadata?: any;
+  }>;
   topUsers: Array<{
+    user_id: string;
+    user_type: string;
     identifier: string;
     name: string;
-    type: 'student' | 'volunteer';
-    totalSelections: number;
-    totalPurchases: number;
-    totalSpent: number;
+    total_selections: number;
+    total_purchase_intents: number;
+    total_purchases: number;
+    total_sprouter_successes: number;
+    total_spent: number;
+    last_activity: string;
   }>;
+  limitViolations: Array<{
+    user_id: string;
+    user_type: string;
+    purchase_date: string;
+    total_tickets_purchased: number;
+    limit_exceeded: boolean;
+  }>;
+  timeframe: string;
 }
 
 export default function AdminAnalyticsPage() {
@@ -75,8 +101,8 @@ export default function AdminAnalyticsPage() {
     try {
       setIsLoading(true);
       
-      // Fetch real analytics data from backend
-      const response = await fetch('/api/analytics');
+      // Fetch enhanced analytics data from backend
+      const response = await fetch(`/api/analytics?timeframe=${selectedTimeframe}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
@@ -94,33 +120,73 @@ export default function AdminAnalyticsPage() {
         totalPurchases: 67,
         totalRevenue: 2450.00,
         showBreakdown: {
-          tue530: { selections: 23, purchases: 18, revenue: 450.00 },
-          tue630: { selections: 28, purchases: 22, revenue: 550.00 },
-          thu530: { selections: 20, purchases: 15, revenue: 375.00 },
-          thu630: { selections: 18, purchases: 12, revenue: 300.00 }
+          'tue-530': { 
+            show_date: '2025-10-28', 
+            show_time: '17:30', 
+            selections: 23, 
+            purchase_intents: 20, 
+            purchases: 18, 
+            sprouter_successes: 16, 
+            revenue: 450.00, 
+            conversion_rate: 78.26 
+          },
+          'tue-630': { 
+            show_date: '2025-10-28', 
+            show_time: '18:30', 
+            selections: 28, 
+            purchase_intents: 25, 
+            purchases: 22, 
+            sprouter_successes: 20, 
+            revenue: 550.00, 
+            conversion_rate: 78.57 
+          },
+          'thu-530': { 
+            show_date: '2025-10-30', 
+            show_time: '17:30', 
+            selections: 20, 
+            purchase_intents: 18, 
+            purchases: 15, 
+            sprouter_successes: 13, 
+            revenue: 375.00, 
+            conversion_rate: 75.00 
+          },
+          'thu-630': { 
+            show_date: '2025-10-30', 
+            show_time: '18:30', 
+            selections: 18, 
+            purchase_intents: 16, 
+            purchases: 12, 
+            sprouter_successes: 10, 
+            revenue: 300.00, 
+            conversion_rate: 66.67 
+          }
         },
         recentActivity: [
           {
-            id: '1',
-            type: 'student',
-            identifier: 'STU001',
-            email: 'student1@email.com',
-            name: 'John Smith',
-            timestamp: new Date().toISOString(),
-            ip_address: '192.168.1.1',
-            user_agent: 'Mozilla/5.0...'
+            activity_type: 'login',
+            activity_details: 'Student login: STU001',
+            activity_timestamp: new Date().toISOString(),
+            user_id: 'HH_001',
+            user_type: 'student',
+            metadata: { student_id: 'STU001', login_source: 'web' }
           }
         ],
         topUsers: [
           {
+            user_id: 'HH_001',
+            user_type: 'student',
             identifier: 'STU001',
             name: 'John Smith',
-            type: 'student',
-            totalSelections: 2,
-            totalPurchases: 2,
-            totalSpent: 50.00
+            total_selections: 2,
+            total_purchase_intents: 2,
+            total_purchases: 2,
+            total_sprouter_successes: 2,
+            total_spent: 50.00,
+            last_activity: new Date().toISOString()
           }
-        ]
+        ],
+        limitViolations: [],
+        timeframe: selectedTimeframe
       };
       setAnalyticsData(mockData);
     } finally {
@@ -276,17 +342,14 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
 
-            {/* Show Breakdown */}
+            {/* Enhanced Show Breakdown */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Show Performance Breakdown</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Enhanced Show Performance Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {Object.entries(analyticsData.showBreakdown).map(([showId, data]) => (
                   <div key={showId} className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-semibold text-gray-800 mb-3">
-                      {showId === 'tue530' && 'Tuesday 5:30 PM'}
-                      {showId === 'tue630' && 'Tuesday 6:30 PM'}
-                      {showId === 'thu530' && 'Thursday 5:30 PM'}
-                      {showId === 'thu630' && 'Thursday 6:30 PM'}
+                      {data.show_date} at {data.show_time}
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -294,12 +357,24 @@ export default function AdminAnalyticsPage() {
                         <span className="font-semibold">{data.selections}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Purchases:</span>
-                        <span className="font-semibold">{data.purchases}</span>
+                        <span className="text-gray-600">Purchase Intents:</span>
+                        <span className="font-semibold text-blue-600">{data.purchase_intents}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Completed Purchases:</span>
+                        <span className="font-semibold text-green-600">{data.purchases}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Sprouter Successes:</span>
+                        <span className="font-semibold text-purple-600">{data.sprouter_successes}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Revenue:</span>
                         <span className="font-semibold text-green-600">{formatCurrency(data.revenue)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Conversion Rate:</span>
+                        <span className="font-semibold text-orange-600">{data.conversion_rate}%</span>
                       </div>
                     </div>
                   </div>
@@ -307,30 +382,102 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Volunteer vs Student Analytics */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Volunteer vs Student Analytics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Student Analytics */}
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                    <span className="mr-2">👨‍🎓</span>
+                    Student Analytics
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Total Logins:</span>
+                      <span className="font-semibold text-blue-800">{analyticsData.studentLogins}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Daily Purchase Limit:</span>
+                      <span className="font-semibold text-blue-800">2 tickets</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">User Type:</span>
+                      <span className="font-semibold text-blue-800">Students</span>
+                    </div>
+                    <div className="text-sm text-blue-600 mt-4">
+                      Students can purchase up to 2 tickets per day with their Student ID
+                    </div>
+                  </div>
+                </div>
+
+                {/* Volunteer Analytics */}
+                <div className="bg-green-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                    <span className="mr-2">👨‍💼</span>
+                    Volunteer Analytics
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-green-700">Total Logins:</span>
+                      <span className="font-semibold text-green-800">{analyticsData.volunteerLogins}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-green-700">Daily Purchase Limit:</span>
+                      <span className="font-semibold text-green-800">4 tickets</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-green-700">User Type:</span>
+                      <span className="font-semibold text-green-800">Volunteers</span>
+                    </div>
+                    <div className="text-sm text-green-600 mt-4">
+                      Volunteers can purchase up to 4 tickets per day with their volunteer code
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Recent Activity */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Enhanced Activity Timeline</h3>
               <div className="space-y-4">
-                {analyticsData.recentActivity.slice(0, 10).map((activity, index) => (
+                {analyticsData.recentActivity.slice(0, 15).map((activity, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        activity.activity_type === 'login' ? 'bg-blue-100' :
+                        activity.activity_type === 'show_selection' ? 'bg-green-100' :
+                        activity.activity_type === 'purchase_intent' ? 'bg-yellow-100' :
+                        activity.activity_type === 'purchase_completed' ? 'bg-purple-100' :
+                        activity.activity_type === 'sprouter_success' ? 'bg-pink-100' :
+                        'bg-gray-100'
+                      }`}>
                         <span className="text-lg">
-                          {'type' in activity ? (activity.type === 'student' ? '👨‍🎓' : '👨‍💼') : '🎫'}
+                          {activity.activity_type === 'login' ? '👤' :
+                           activity.activity_type === 'show_selection' ? '🎭' :
+                           activity.activity_type === 'purchase_intent' ? '🛒' :
+                           activity.activity_type === 'purchase_completed' ? '✅' :
+                           activity.activity_type === 'sprouter_success' ? '🎫' :
+                           '📊'}
                         </span>
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          {'type' in activity ? (activity.type === 'student' ? 'Student' : 'Volunteer') : 'Purchase'} Activity
+                          {activity.activity_type.replace('_', ' ').toUpperCase()}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {'identifier' in activity ? `ID: ${activity.identifier}` : `Activity: ${'action' in activity ? activity.action : 'Unknown'}`}
+                          {activity.activity_details}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          User: {activity.user_id} ({activity.user_type})
+                          {activity.show_id && ` | Show: ${activity.show_id}`}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">
-                        {formatDate('timestamp' in activity ? activity.timestamp : new Date().toISOString())}
+                        {formatDate(activity.activity_timestamp)}
                       </p>
                     </div>
                   </div>
@@ -340,11 +487,56 @@ export default function AdminAnalyticsPage() {
           </div>
         )}
 
-        {/* Users Tab */}
+        {/* Enhanced Users Tab */}
         {activeTab === 'users' && analyticsData && (
           <div className="space-y-8">
+            {/* User Type Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">👨‍🎓</span>
+                  Student Summary
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Students:</span>
+                    <span className="font-semibold text-blue-600">{analyticsData.studentLogins}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Daily Limit:</span>
+                    <span className="font-semibold text-blue-600">2 tickets</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Login Method:</span>
+                    <span className="font-semibold text-blue-600">Student ID</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">👨‍💼</span>
+                  Volunteer Summary
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Volunteers:</span>
+                    <span className="font-semibold text-green-600">{analyticsData.volunteerLogins}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Daily Limit:</span>
+                    <span className="font-semibold text-green-600">4 tickets</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Login Method:</span>
+                    <span className="font-semibold text-green-600">Code + Email</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Top Users by Activity</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Enhanced User Analytics</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -352,43 +544,141 @@ export default function AdminAnalyticsPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selections</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Intents</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purchases</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Successes</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {analyticsData.topUsers.map((user, index) => (
-                      <tr key={index}>
+                      <tr key={index} className={user.user_type === 'volunteer' ? 'bg-green-50' : 'bg-blue-50'}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm font-medium text-gray-900">{user.name || 'Unknown'}</div>
                             <div className="text-sm text-gray-500">{user.identifier}</div>
+                            <div className="text-xs text-gray-400">{user.user_id}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.type === 'student' 
+                            user.user_type === 'student' 
                               ? 'bg-blue-100 text-blue-800' 
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {user.type === 'student' ? 'Student' : 'Volunteer'}
+                            {user.user_type === 'student' ? 'Student' : 'Volunteer'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.totalSelections}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.totalPurchases}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">{formatCurrency(user.totalSpent)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.total_selections}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{user.total_purchase_intents}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{user.total_purchases}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600">{user.total_sprouter_successes}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">{formatCurrency(user.total_spent)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(user.last_activity)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
+
+            {/* Limit Violations */}
+            {analyticsData.limitViolations.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Daily Purchase Limit Violations</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-red-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tickets Purchased</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {analyticsData.limitViolations.map((violation, index) => (
+                        <tr key={index} className="bg-red-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{violation.user_id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              violation.user_type === 'student' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {violation.user_type === 'student' ? 'Student' : 'Volunteer'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{violation.purchase_date}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-semibold">{violation.total_tickets_purchased}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                              Limit Exceeded
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Shows Tab */}
         {activeTab === 'shows' && analyticsData && (
           <div className="space-y-8">
+            {/* Volunteer vs Student Show Preferences */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Volunteer vs Student Show Preferences</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                    <span className="mr-2">👨‍🎓</span>
+                    Student Show Selections
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="text-sm text-blue-700">
+                      Students typically select shows based on:
+                    </div>
+                    <ul className="text-sm text-blue-600 space-y-1 ml-4">
+                      <li>• Family schedule compatibility</li>
+                      <li>• Transportation availability</li>
+                      <li>• Sibling coordination</li>
+                      <li>• Academic commitments</li>
+                    </ul>
+                    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                      <div className="text-sm font-semibold text-blue-800">Student Purchase Limit: 2 tickets/day</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                    <span className="mr-2">👨‍💼</span>
+                    Volunteer Show Selections
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="text-sm text-green-700">
+                      Volunteers typically select shows based on:
+                    </div>
+                    <ul className="text-sm text-green-600 space-y-1 ml-4">
+                      <li>• Work schedule flexibility</li>
+                      <li>• Multiple family members</li>
+                      <li>• Extended family coordination</li>
+                      <li>• Community involvement</li>
+                    </ul>
+                    <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                      <div className="text-sm font-semibold text-green-800">Volunteer Purchase Limit: 4 tickets/day</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Show Performance Analysis</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -406,8 +696,16 @@ export default function AdminAnalyticsPage() {
                         <span className="text-2xl font-bold text-blue-600">{data.selections}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Purchases</span>
+                        <span className="text-gray-600">Purchase Intents</span>
+                        <span className="text-2xl font-bold text-yellow-600">{data.purchase_intents}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Completed Purchases</span>
                         <span className="text-2xl font-bold text-green-600">{data.purchases}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Sprouter Successes</span>
+                        <span className="text-2xl font-bold text-purple-600">{data.sprouter_successes}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Revenue</span>
@@ -416,12 +714,12 @@ export default function AdminAnalyticsPage() {
                       <div className="mt-4">
                         <div className="flex justify-between text-sm text-gray-500 mb-1">
                           <span>Conversion Rate</span>
-                          <span>{Math.round((data.purchases / data.selections) * 100)}%</span>
+                          <span>{data.conversion_rate}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-green-500 h-2 rounded-full" 
-                            style={{ width: `${(data.purchases / data.selections) * 100}%` }}
+                            style={{ width: `${data.conversion_rate}%` }}
                           ></div>
                         </div>
                       </div>
