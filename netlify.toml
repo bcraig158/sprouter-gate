@@ -4,7 +4,10 @@
   publish = "frontend/dist"
 
 [functions]
-  included_files = ["netlify/functions/backend/data/sprouter_events.db"]
+  included_files = [
+    "netlify/functions/backend/data/sprouter_events.db",
+    "netlify/functions/sprouter_events.db"
+  ]
 
 [build.environment]
   NODE_VERSION = "18"
