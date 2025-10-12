@@ -3,6 +3,9 @@
   command = "cd frontend && npm install --legacy-peer-deps && npm run build:production && cd ../netlify/functions && npm install"
   publish = "frontend/dist"
 
+[functions]
+  included_files = ["netlify/functions/backend/data/sprouter_events.db"]
+
 [build.environment]
   NODE_VERSION = "18"
   NODE_ENV = "production"

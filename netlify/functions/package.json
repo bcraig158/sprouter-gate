@@ -4,8 +4,9 @@
   "description": "Netlify Functions for Sprouter Events API",
   "main": "api.js",
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
     "bcrypt": "^5.1.1",
-    "luxon": "^3.4.4"
+    "jsonwebtoken": "^9.0.2",
+    "luxon": "^3.4.4",
+    "sqlite3": "^5.1.7"
   }
 }

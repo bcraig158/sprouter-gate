@@ -1,16 +1,17 @@
-// Analytics API for Netlify Functions
-const secureStorage = require('./secureStorage');
+// Analytics API for Netlify Functions - Reads from SQLite database
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 exports.handler = async (event, context) => {
   try {
-    const { httpMethod, path, headers, body } = event;
+    const { httpMethod, path: requestPath, headers, body } = event;
     
     // Extract the route
-    let route = path;
-    if (path.startsWith('/.netlify/functions/analytics')) {
-      route = path.replace('/.netlify/functions/analytics', '');
-    } else if (path.startsWith('/api/analytics')) {
-      route = path.replace('/api/analytics', '');
+    let route = requestPath;
+    if (requestPath.startsWith('/.netlify/functions/analytics')) {
+      route = requestPath.replace('/.netlify/functions/analytics', '');
+    } else if (requestPath.startsWith('/api/analytics')) {
+      route = requestPath.replace('/api/analytics', '');
     }
     route = route || '/';
     
@@ -36,8 +37,11 @@ exports.handler = async (event, context) => {
       const { timeframe = 'all' } = event.queryStringParameters || {};
       
       try {
-        // Load analytics data from secure storage
-        const analyticsData = await secureStorage.loadData();
+        // Path to the SQLite database
+        const dbPath = path.join(__dirname, 'backend/data/sprouter_events.db');
+        
+        // Connect to database
+        const db = new sqlite3.Database(dbPath);
         
         // Calculate time-based filtering
         const now = new Date();
@@ -57,31 +61,36 @@ exports.handler = async (event, context) => {
             timeFilter = null;
         }
         
-        // Get login data from secureStorage format
-        let filteredLogins = analyticsData.userLogins || [];
+        // Build time filter SQL
+        let timeFilterSQL = '';
         if (timeFilter) {
-          filteredLogins = filteredLogins.filter(login => {
-            const loginTime = new Date(login.login_timestamp);
-            return loginTime >= timeFilter;
-          });
+          timeFilterSQL = `WHERE login_timestamp >= '${timeFilter.toISOString()}'`;
         }
         
-        console.log(`📊 Analytics: Found ${filteredLogins.length} logins for timeframe ${timeframe}`);
+        // Get login data from database
+        const logins = await new Promise((resolve, reject) => {
+          const query = `SELECT * FROM user_logins ${timeFilterSQL} ORDER BY login_timestamp DESC`;
+          db.all(query, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+          });
+        });
+        
+        console.log(`📊 Analytics: Found ${logins.length} logins for timeframe ${timeframe}`);
         
         // Calculate metrics
-        const totalLogins = filteredLogins.length;
-        const studentLogins = filteredLogins.filter(login => login.user_type === 'student').length;
-        const volunteerLogins = filteredLogins.filter(login => login.user_type === 'volunteer').length;
+        const totalLogins = logins.length;
+        const studentLogins = logins.filter(login => login.user_type === 'student').length;
+        const volunteerLogins = logins.filter(login => login.user_type === 'volunteer').length;
         
         // Get active users (last 24 hours)
         const activeUsersFilter = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const activeUsers = filteredLogins.filter(login => 
+        const activeUsers = logins.filter(login => 
           new Date(login.login_timestamp) >= activeUsersFilter
         );
         
         // Get recent activity
-        const recentActivity = filteredLogins
-          .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))
+        const recentActivity = logins
           .slice(0, 20)
           .map(login => ({
             activity_type: 'login',
@@ -93,7 +102,6 @@ exports.handler = async (event, context) => {
         
         // Get active users list
         const activeUsersList = activeUsers
-          .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))
           .map(user => ({
             user_id: user.user_id,
             user_type: user.user_type,
@@ -103,8 +111,21 @@ exports.handler = async (event, context) => {
           }));
         
         // Get show selections and purchases data
-        const showSelections = analyticsData.showSelections || [];
-        const purchases = analyticsData.purchases || [];
+        const showSelections = await new Promise((resolve, reject) => {
+          const query = `SELECT * FROM show_selections ${timeFilterSQL.replace('login_timestamp', 'timestamp')} ORDER BY timestamp DESC`;
+          db.all(query, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+          });
+        });
+        
+        const purchases = await new Promise((resolve, reject) => {
+          const query = `SELECT * FROM purchases ${timeFilterSQL.replace('login_timestamp', 'timestamp')} ORDER BY timestamp DESC`;
+          db.all(query, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+          });
+        });
         
         // Filter show selections by timeframe
         let filteredSelections = showSelections;
@@ -162,7 +183,7 @@ exports.handler = async (event, context) => {
         
         // Get top users
         const userStats = {};
-        filteredLogins.forEach(login => {
+        logins.forEach(login => {
           if (!userStats[login.user_id]) {
             userStats[login.user_id] = {
               user_id: login.user_id,
@@ -187,6 +208,9 @@ exports.handler = async (event, context) => {
         const totalShowSelections = filteredSelections.length;
         const totalPurchases = filteredPurchases.length;
         const totalRevenue = filteredPurchases.reduce((sum, purchase) => sum + (purchase.metadata?.total_cost || 0), 0);
+        
+        // Close database connection
+        db.close();
         
         const response = {
           totalLogins,

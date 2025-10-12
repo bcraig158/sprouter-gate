@@ -2,12 +2,53 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { DateTime } = require('luxon');
 const crypto = require('crypto');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const secureStorage = require('./secureStorage');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
 
 // Force redeploy - function updated
+
+// Database helper function
+async function storeLoginInDatabase(loginData) {
+  return new Promise((resolve, reject) => {
+    const dbPath = path.join(__dirname, 'backend/data/sprouter_events.db');
+    const db = new sqlite3.Database(dbPath);
+    
+    const query = `
+      INSERT INTO user_logins (
+        user_id, user_type, identifier, email, name, 
+        ip_address, user_agent, login_timestamp, session_id, login_source
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    const values = [
+      loginData.user_id,
+      loginData.user_type,
+      loginData.identifier,
+      loginData.email || null,
+      loginData.name || null,
+      loginData.ip_address || null,
+      loginData.user_agent || null,
+      loginData.login_timestamp,
+      loginData.session_id || null,
+      loginData.login_source || 'web'
+    ];
+    
+    db.run(query, values, function(err) {
+      db.close();
+      if (err) {
+        console.error('Database error:', err);
+        reject(err);
+      } else {
+        console.log(`✅ Login stored in database: ${loginData.user_type} - ${loginData.identifier}`);
+        resolve(this.lastID);
+      }
+    });
+  });
+}
 
 // In-memory data for production (serverless-friendly)
 const students = [
@@ -729,7 +770,10 @@ exports.handler = async (event, context) => {
         domain: headers.host || 'unknown'
       };
       
-      // Store in secure file storage
+      // Store in database
+      await storeLoginInDatabase(loginData);
+      
+      // Also store in secure file storage for backup
       await secureStorage.storeLogin(loginData);
       
       // Update local cache
@@ -808,7 +852,10 @@ exports.handler = async (event, context) => {
         domain: headers.host || 'unknown'
       };
       
-      // Store in secure file storage
+      // Store in database
+      await storeLoginInDatabase(loginData);
+      
+      // Also store in secure file storage for backup
       await secureStorage.storeLogin(loginData);
       
       // Update local cache
