@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 interface LoginRecord {
   id: string;
@@ -87,15 +88,32 @@ interface AnalyticsData {
 }
 
 export default function AdminAnalyticsPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'shows' | 'revenue'>('overview');
 
+  // Check if user is authenticated and is admin
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [selectedTimeframe]);
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      if (!user.isAdmin) {
+        navigate('/select');
+        return;
+      }
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!authLoading && user && user.isAdmin) {
+      fetchAnalyticsData();
+    }
+  }, [selectedTimeframe, authLoading, user]);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -211,6 +229,18 @@ export default function AdminAnalyticsPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );

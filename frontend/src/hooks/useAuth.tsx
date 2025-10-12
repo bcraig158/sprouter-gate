@@ -63,25 +63,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (studentId: string): Promise<boolean> => {
     try {
-      // Simple frontend-only authentication
-      // Accept any non-empty student ID
-      if (studentId && studentId.trim().length > 0) {
-        // Create a simple token for session management
-        const mockToken = btoa(JSON.stringify({
-          studentId: studentId.trim(),
-          householdId: `HH_${studentId.trim()}`,
-          isVolunteer: false,
-          exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        }));
-        
-        setToken(mockToken);
+      // Use backend API for authentication
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: studentId.trim()
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setToken(data.token);
         setUser({
-          householdId: `HH_${studentId.trim()}`,
+          householdId: data.householdId,
           studentId: studentId.trim(),
           isVolunteer: false
         });
-        
-        localStorage.setItem('token', mockToken);
+        localStorage.setItem('token', data.token);
         return true;
       }
       return false;
@@ -93,62 +95,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const volunteerLogin = async (volunteerCode: string, email: string): Promise<boolean> => {
     try {
-      if (import.meta.env.PROD) {
-        // Production mode - simple frontend-only authentication
-        if (volunteerCode && email && volunteerCode.trim().length === 6 && email.trim().length > 0) {
-          const mockToken = btoa(JSON.stringify({
-            volunteerCode: volunteerCode.trim(),
-            householdId: `VOL_${volunteerCode.trim()}`,
-            isVolunteer: true,
-            exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-          }));
-          
-          setToken(mockToken);
-          setUser({
-            householdId: `VOL_${volunteerCode.trim()}`,
-            volunteerCode: volunteerCode.trim(),
-            isVolunteer: true
-          });
-          
-          localStorage.setItem('token', mockToken);
-          return true;
-        }
-        return false;
-      } else {
-        // Development mode - use API
-        const response = await fetch('/api/volunteer-login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            volunteerCode: volunteerCode.trim(),
-            email: email.trim()
-          })
-        });
+      // Always use backend API for authentication
+      const response = await fetch('/api/volunteer-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          volunteerCode: volunteerCode.trim(),
+          email: email.trim()
+        })
+      });
 
-        const data = await response.json();
+      const data = await response.json();
+      
+      if (data.success) {
+        setToken(data.token);
+        setUser({
+          householdId: data.householdId,
+          volunteerCode: volunteerCode.trim(),
+          isVolunteer: true,
+          isAdmin: data.isAdmin || false
+        });
+        localStorage.setItem('token', data.token);
         
-        if (data.success) {
-          setToken(data.token);
-          setUser({
-            householdId: data.householdId,
-            volunteerCode: volunteerCode.trim(),
-            isVolunteer: true,
-            isAdmin: data.isAdmin || false
-          });
-          localStorage.setItem('token', data.token);
-          
-          // If this is an admin login, redirect to admin analytics
-          if (data.isAdmin) {
-            window.location.href = '/admin-analytics';
-            return true;
-          }
-          
+        // If this is an admin login, redirect to admin analytics
+        if (data.isAdmin) {
+          window.location.href = '/admin-analytics';
           return true;
         }
-        return false;
+        
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Volunteer login error:', error);
       return false;
