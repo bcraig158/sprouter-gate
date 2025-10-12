@@ -25,6 +25,11 @@
 
 # Handle client-side routing for React SPA
 [[redirects]]
+  from = "/api/analytics"
+  to = "/.netlify/functions/analytics"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api"
   status = 200

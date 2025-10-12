@@ -36,8 +36,29 @@ exports.handler = async (event, context) => {
       const { timeframe = 'all' } = event.queryStringParameters || {};
       
       try {
+        console.log('Analytics requested');
+        console.log(`📊 Analytics timeframe requested: ${timeframe}`);
+        
         // Get data from secure file storage
         const data = await secureStorage.getAnalytics();
+        
+        console.log('Analytics data structure:', {
+          userLogins: data.userLogins?.length || 0,
+          showSelections: data.showSelections?.length || 0,
+          purchases: data.purchases?.length || 0,
+          sessions: data.sessions?.length || 0,
+          activities: data.activities?.length || 0
+        });
+        
+        // Show sample of login data to debug
+        if (data.userLogins && data.userLogins.length > 0) {
+          console.log('📊 Sample login data:', data.userLogins.slice(0, 3).map(login => ({
+            user_type: login.user_type,
+            identifier: login.identifier,
+            timestamp: login.login_timestamp,
+            domain: login.domain
+          })));
+        }
         
         // Calculate time-based filtering
         const now = new Date();
@@ -202,6 +223,17 @@ exports.handler = async (event, context) => {
           .sort((a, b) => b.total_spent - a.total_spent)
           .slice(0, 10);
         
+        // Get fraud detection data (placeholder - would need to implement actual fraud detection)
+        const fraudDetection = {
+          total_violations: 0,
+          violations_by_type: {
+            dailyTicketExceeded: 0,
+            multipleLogins: 0,
+            suspiciousIPs: 0
+          },
+          recent_violations: []
+        };
+        
         // Return analytics data
         const analyticsData = {
           totalLogins,
@@ -218,7 +250,9 @@ exports.handler = async (event, context) => {
           recentActivity,
           topUsers,
           limitViolations: [], // Not implemented yet
-          timeframe
+          fraud_detection: fraudDetection,
+          timeframe,
+          lastUpdated: data.metadata?.lastUpdated || new Date().toISOString()
         };
         
         return {

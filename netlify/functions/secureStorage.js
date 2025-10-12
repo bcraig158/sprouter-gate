@@ -133,26 +133,8 @@ class SecureStorage {
         const fileContent = fs.readFileSync(this.dataFile, 'utf8');
         const data = JSON.parse(fileContent);
         
-        // Clean up old data (keep only last 30 days)
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        
-        if (data.userLogins) {
-          data.userLogins = data.userLogins.filter(login => 
-            new Date(login.login_timestamp) > thirtyDaysAgo
-          );
-        }
-        
-        if (data.showSelections) {
-          data.showSelections = data.showSelections.filter(selection => 
-            new Date(selection.timestamp) > thirtyDaysAgo
-          );
-        }
-        
-        if (data.purchases) {
-          data.purchases = data.purchases.filter(purchase => 
-            new Date(purchase.timestamp) > thirtyDaysAgo
-          );
-        }
+        // NO DATA DELETION - Timeframes are for display only, not data filtering
+        // All historical data should be preserved for analytics
 
         console.log(`📊 Loaded from primary storage: ${data.userLogins?.length || 0} logins, ${data.showSelections?.length || 0} selections, ${data.purchases?.length || 0} purchases`);
         return data;
