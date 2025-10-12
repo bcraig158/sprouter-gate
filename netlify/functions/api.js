@@ -344,7 +344,7 @@ exports.handler = async (event, context) => {
       // Load volunteer codes from JSON file
       const fs = require('fs');
       const path = require('path');
-      const volunteerCodesPath = path.join(__dirname, '../../volunteer-codes.json');
+      const volunteerCodesPath = path.join(__dirname, 'volunteer-codes.json');
       
       let volunteerCodes = [];
       try {
