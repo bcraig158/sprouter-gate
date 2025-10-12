@@ -147,6 +147,22 @@ router.post('/login', async (req: express.Request, res: express.Response): Promi
       [sessionId, student.household_id, expiresAt]
     );
 
+    // Enhanced login tracking
+    await runQuery(
+      `INSERT INTO user_logins (user_id, user_type, identifier, email, name, ip_address, user_agent, login_timestamp) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        student.household_id,
+        'student',
+        studentId,
+        '', // Student email not available in current schema
+        '', // Student name not available in current schema
+        req.ip,
+        req.get('User-Agent') || '',
+        new Date().toISOString()
+      ]
+    );
+
     // Log the login
     await runQuery(
       'INSERT INTO audit_log (household_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
@@ -230,6 +246,22 @@ router.post('/volunteer-login', async (req: express.Request, res: express.Respon
     await runQuery(
       'INSERT INTO sessions (session_id, household_id, expires_at) VALUES (?, ?, ?)',
       [sessionId, volunteerHouseholdId, expiresAt]
+    );
+
+    // Enhanced volunteer login tracking
+    await runQuery(
+      `INSERT INTO user_logins (user_id, user_type, identifier, email, name, ip_address, user_agent, login_timestamp) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        volunteerHouseholdId,
+        'volunteer',
+        volunteerCode,
+        volunteer.email,
+        volunteer.name,
+        req.ip,
+        req.get('User-Agent') || '',
+        new Date().toISOString()
+      ]
     );
 
     // Log the volunteer login
@@ -383,6 +415,23 @@ router.post('/select-slot', verifyToken, async (req: express.Request, res: expre
       [householdId, night, newTicketsRequested, currentTicketsPurchased, JSON.stringify(newShows)]
     );
 
+    // Track show selection
+    const nightInfo = getNightForEvent(eventKey);
+    if (nightInfo) {
+      await runQuery(
+        `INSERT INTO show_selections (user_id, user_type, show_id, show_date, show_time, tickets_requested) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          householdId,
+          household.volunteer_redeemed ? 'volunteer' : 'student',
+          eventKey,
+          nightInfo.date,
+          nightInfo.time,
+          ticketsRequested
+        ]
+      );
+    }
+
     // Log the action
     await runQuery(
       'INSERT INTO audit_log (household_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
@@ -461,6 +510,133 @@ router.post('/issue-intent', verifyToken, async (req: express.Request, res: expr
     });
   } catch (error) {
     console.error('Issue intent error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/analytics
+router.get('/analytics', async (req: express.Request, res: express.Response): Promise<void> => {
+  try {
+    // Get analytics data
+    const totalLogins = await getQuery<{ count: number }>(
+      'SELECT COUNT(*) as count FROM user_logins'
+    );
+
+    const studentLogins = await getQuery<{ count: number }>(
+      'SELECT COUNT(*) as count FROM user_logins WHERE user_type = "student"'
+    );
+
+    const volunteerLogins = await getQuery<{ count: number }>(
+      'SELECT COUNT(*) as count FROM user_logins WHERE user_type = "volunteer"'
+    );
+
+    const totalShowSelections = await getQuery<{ count: number }>(
+      'SELECT COUNT(*) as count FROM show_selections'
+    );
+
+    const totalPurchases = await getQuery<{ count: number }>(
+      'SELECT COUNT(*) as count FROM purchases WHERE payment_status = "completed"'
+    );
+
+    const totalRevenue = await getQuery<{ total: number }>(
+      'SELECT SUM(total_cost) as total FROM purchases WHERE payment_status = "completed"'
+    );
+
+    // Get show breakdown
+    const showBreakdown = await allQuery<{
+      show_id: string;
+      selections: number;
+      purchases: number;
+      revenue: number;
+    }>(
+      `SELECT 
+        show_id,
+        COUNT(*) as selections,
+        COUNT(CASE WHEN p.payment_status = 'completed' THEN 1 END) as purchases,
+        COALESCE(SUM(CASE WHEN p.payment_status = 'completed' THEN p.total_cost ELSE 0 END), 0) as revenue
+       FROM show_selections ss
+       LEFT JOIN purchases p ON ss.user_id = p.user_id AND ss.show_id = p.show_id
+       GROUP BY show_id`
+    );
+
+    // Get recent activity
+    const recentActivity = await allQuery<{
+      id: string;
+      user_id: string;
+      user_type: string;
+      action: string;
+      timestamp: string;
+      details: string;
+    }>(
+      `SELECT 
+        ul.id,
+        ul.user_id,
+        ul.user_type,
+        'login' as action,
+        ul.login_timestamp as timestamp,
+        CONCAT(ul.user_type, ' login: ', ul.identifier) as details
+       FROM user_logins ul
+       UNION ALL
+       SELECT 
+        ss.id,
+        ss.user_id,
+        ss.user_type,
+        'selection' as action,
+        ss.selection_timestamp as timestamp,
+        CONCAT('Selected show: ', ss.show_id) as details
+       FROM show_selections ss
+       ORDER BY timestamp DESC
+       LIMIT 20`
+    );
+
+    // Get top users
+    const topUsers = await allQuery<{
+      user_id: string;
+      user_type: string;
+      identifier: string;
+      name: string;
+      total_selections: number;
+      total_purchases: number;
+      total_spent: number;
+    }>(
+      `SELECT 
+        ul.user_id,
+        ul.user_type,
+        ul.identifier,
+        ul.name,
+        COUNT(DISTINCT ss.id) as total_selections,
+        COUNT(DISTINCT p.id) as total_purchases,
+        COALESCE(SUM(p.total_cost), 0) as total_spent
+       FROM user_logins ul
+       LEFT JOIN show_selections ss ON ul.user_id = ss.user_id
+       LEFT JOIN purchases p ON ul.user_id = p.user_id AND p.payment_status = 'completed'
+       GROUP BY ul.user_id, ul.user_type, ul.identifier, ul.name
+       ORDER BY total_selections DESC, total_spent DESC
+       LIMIT 10`
+    );
+
+    const analyticsData = {
+      totalLogins: totalLogins?.count || 0,
+      studentLogins: studentLogins?.count || 0,
+      volunteerLogins: volunteerLogins?.count || 0,
+      totalShowSelections: totalShowSelections?.count || 0,
+      totalPurchases: totalPurchases?.count || 0,
+      totalRevenue: totalRevenue?.total || 0,
+      showBreakdown: showBreakdown.reduce((acc, show) => {
+        acc[show.show_id] = {
+          selections: show.selections,
+          purchases: show.purchases,
+          revenue: show.revenue
+        };
+        return acc;
+      }, {} as any),
+      recentActivity,
+      topUsers
+    };
+
+    res.json(analyticsData);
+  } catch (error) {
+    console.error('Analytics error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -6,6 +6,7 @@ import SelectPage from './features/select/SelectPage';
 import VolunteerSelectPage from './features/select/VolunteerSelectPage';
 import PurchasePage from './features/purchase/PurchasePage';
 import StatusPage from './features/status/StatusPage';
+import AdminAnalyticsPage from './features/admin/AdminAnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -47,6 +48,9 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
+          
+          {/* Admin routes */}
+          <Route path="/admin-analytics" element={<AdminAnalyticsPage />} />
           
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/login" replace />} />

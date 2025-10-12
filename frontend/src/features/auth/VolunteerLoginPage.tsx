@@ -16,6 +16,12 @@ export default function VolunteerLoginPage() {
     setError('');
 
     try {
+      // Check for admin credentials
+      if (volunteerCode === '339933' && email.toLowerCase() === 'admin@maidu.com') {
+        navigate('/admin-analytics');
+        return;
+      }
+
       const success = await volunteerLogin(volunteerCode, email);
       if (success) {
         navigate('/volunteer-select');
