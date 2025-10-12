@@ -316,20 +316,22 @@ export default function AdminAnalyticsPage() {
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-lg">
-                          {activity.type === 'student' ? '👨‍🎓' : '👨‍💼' : '🎫'}
+                          {'type' in activity ? (activity.type === 'student' ? '👨‍🎓' : '👨‍💼') : '🎫'}
                         </span>
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          {activity.type === 'student' ? 'Student' : 'Volunteer'} Activity
+                          {'type' in activity ? (activity.type === 'student' ? 'Student' : 'Volunteer') : 'Purchase'} Activity
                         </p>
                         <p className="text-sm text-gray-600">
-                          {activity.type === 'student' ? `Student ID: ${activity.identifier}` : `Volunteer: ${activity.name}`}
+                          {'identifier' in activity ? `ID: ${activity.identifier}` : `Activity: ${'action' in activity ? activity.action : 'Unknown'}`}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600">{formatDate(activity.timestamp)}</p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate('timestamp' in activity ? activity.timestamp : new Date().toISOString())}
+                      </p>
                     </div>
                   </div>
                 ))}
