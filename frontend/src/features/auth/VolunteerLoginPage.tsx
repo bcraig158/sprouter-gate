@@ -60,25 +60,6 @@ export default function VolunteerLoginPage() {
 
         {/* Main Card */}
         <div className="w-full max-w-md">
-          {/* Volunteer Info Card */}
-          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-6 mb-6 border border-white/20 transform hover:shadow-3xl transition-all duration-300">
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Volunteer Benefits</h3>
-                <div className="space-y-1">
-                  <p className="text-gray-800 font-medium">🎫 Extra 2 tickets per night</p>
-                  <p className="text-gray-800 font-medium">⭐ Priority access to shows</p>
-                  <p className="text-gray-600 text-sm mt-2">Thank you for volunteering!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Login Card */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Volunteer Login</h2>

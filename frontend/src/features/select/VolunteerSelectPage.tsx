@@ -171,8 +171,8 @@ export default function VolunteerSelectPage() {
           <div className="text-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">HOW TO SELECT YOUR TICKETS:</h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
+          <div className="flex justify-center">
+            <div className="space-y-3 max-w-2xl">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -206,16 +206,6 @@ export default function VolunteerSelectPage() {
                 <p className="text-gray-700 font-medium">DO NOT select the show you're volunteering for - you'll be working!</p>
               </div>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <h3 className="font-bold text-yellow-800 mb-2">YOUR VOLUNTEER SHIFT:</h3>
-              <p className="text-yellow-700 text-sm mb-2">
-                {/* This would be populated from the volunteer's shift data */}
-                Tuesday, October 28 - 5:30 PM (Example)
-              </p>
-              <p className="text-yellow-600 text-xs">
-                Select different show times to watch.
-              </p>
-            </div>
           </div>
         </div>
 
@@ -226,53 +216,37 @@ export default function VolunteerSelectPage() {
             <p className="text-gray-600">📍 Maidu Elementary School, 1950 Johnson Ranch Drive, Roseville, CA 95661</p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Volunteer Ticket Rules */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                Volunteer Ticket Rules
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Up to 4 tickets per family per night (2 base + 2 volunteer bonus)</li>
-                <li>• Choose ONE show time only</li>
-                <li>• Children 2 & under free (lap seating)</li>
-                <li>• Volunteer tickets are FREE</li>
-              </ul>
-            </div>
-
-            {/* Ticket Options */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                Ticket Options
-              </h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                <div className="flex justify-between">
-                  <span>General Admission:</span>
-                  <span className="font-semibold text-green-600">FREE</span>
+          <div className="max-w-4xl mx-auto">
+            <div className="space-y-6">
+              {/* Show Selection Rules */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-800 flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Choose ONE show per night:
+                </h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p><strong>October 28:</strong> Either 5:30 PM OR 6:30 PM</p>
+                  <p><strong>October 30:</strong> Either 5:30 PM OR 6:30 PM</p>
+                  <p className="text-green-600 font-medium">You can attend one night or both nights</p>
                 </div>
-                <div className="flex justify-between">
-                  <span>Preferred Seating:</span>
-                  <span className="font-semibold text-purple-600">$25</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Volunteer Bonus:</span>
-                  <span className="font-semibold text-yellow-600">+2 FREE</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Preferred seating in first 2 rows</p>
               </div>
-            </div>
 
-            {/* Volunteer Info */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center">
-                <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                Volunteer Access
-              </h3>
-              <p className="text-sm text-gray-600">
-                As a volunteer, you receive additional 2 FREE tickets per night. These will be automatically added to your cart at checkout.
-              </p>
+              {/* Ticket Options */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-800 flex items-center">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  ✓ Your ticket options (per show you attend):
+                </h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p><strong>Option 1:</strong> 4 General Admission tickets - <span className="text-green-600 font-semibold">FREE</span></p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p><strong>Option 2:</strong> 2 Reserved Seats ($50 total) + 2 General Admission (<span className="text-green-600 font-semibold">FREE</span>)</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Reserved seats are in the first 2 rows</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -387,7 +361,7 @@ export default function VolunteerSelectPage() {
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-2 text-left">
+                  <div className="space-y-2 text-center">
                     <div className="flex items-center text-sm text-gray-600">
                       <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -516,7 +490,7 @@ export default function VolunteerSelectPage() {
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-2 text-left">
+                  <div className="space-y-2 text-center">
                     <div className="flex items-center text-sm text-gray-600">
                       <svg className="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
