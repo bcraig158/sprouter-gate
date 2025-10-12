@@ -229,8 +229,9 @@ This project is proprietary software for Starstruck Presents.
 ## 📞 Support
 
 For technical support or questions:
-- **Website**: https://starstruckpresents.com
-- **Email**: Contact through the organizer page
+- **Email**: maiduelementaryptc@gmail.com
+- **Phone**: 916-749-0848
+- **Website**: https://maidutickets.com
 
 ---
 

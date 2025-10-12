@@ -419,6 +419,9 @@ export default function SelectPage() {
                 <div className="bg-white rounded-lg p-2 text-center border">
                   <div className="font-medium text-gray-700">1st - Dessling</div>
                 </div>
+                <div className="bg-white rounded-lg p-2 text-center border">
+                  <div className="font-medium text-gray-700">3rd - Moshofsky</div>
+                </div>
               </div>
             </div>
             

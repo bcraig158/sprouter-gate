@@ -338,7 +338,7 @@ export default function VolunteerPurchasePage() {
             Volunteer Support
           </h3>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Need help with your volunteer tickets? Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call during business hours. Thank you for volunteering!
+            Need help with your volunteer tickets? Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a>. Thank you for volunteering!
           </p>
         </div>
       </div>

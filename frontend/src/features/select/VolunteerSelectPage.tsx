@@ -201,7 +201,7 @@ export default function VolunteerSelectPage() {
                 <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
+              </svg>
                 </div>
                 <p className="text-gray-700 font-medium">DO NOT select the show you're volunteering for - you'll be working!</p>
               </div>
@@ -456,6 +456,9 @@ export default function VolunteerSelectPage() {
                 <div className="bg-white rounded-lg p-2 text-center border">
                   <div className="font-medium text-gray-700">1st - Dessling</div>
                 </div>
+                <div className="bg-white rounded-lg p-2 text-center border">
+                  <div className="font-medium text-gray-700">3rd - Moshofsky</div>
+                </div>
               </div>
             </div>
             
@@ -655,7 +658,7 @@ export default function VolunteerSelectPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: What if I forgot my volunteer code?</p>
-                  <p className="text-gray-600 text-sm">A: Contact Lauren at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> and she'll resend it.</p>
+                  <p className="text-gray-600 text-sm">A: Contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a> and we'll resend it.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: Can someone else use my volunteer code?</p>
@@ -663,7 +666,7 @@ export default function VolunteerSelectPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: My code isn't working - what should I do?</p>
-                  <p className="text-gray-600 text-sm">A: Make sure you're entering all 6 digits correctly and using the email address you registered with. If issues persist, contact Lauren.</p>
+                  <p className="text-gray-600 text-sm">A: Make sure you're entering all 6 digits correctly and using the email address you registered with. If issues persist, contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a>.</p>
                 </div>
               </div>
             </div>
@@ -701,7 +704,7 @@ export default function VolunteerSelectPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: I have 5 family members - can I get more than 4 tickets?</p>
-                  <p className="text-gray-600 text-sm">A: Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact Lauren to discuss options, subject to availability.</p>
+                  <p className="text-gray-600 text-sm">A: Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a> to discuss options, subject to availability.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: Can I bring guests who aren't family?</p>
@@ -720,7 +723,7 @@ export default function VolunteerSelectPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: What will I be doing as a volunteer?</p>
-                  <p className="text-gray-600 text-sm">A: You'll be helping in classrooms with students during the show. Lauren Deary will send detailed instructions closer to the event.</p>
+                  <p className="text-gray-600 text-sm">A: You'll be helping in classrooms with students during the show. We'll send detailed instructions closer to the event.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: Can I watch part of the show I'm volunteering for?</p>
@@ -739,7 +742,7 @@ export default function VolunteerSelectPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: I'm having trouble with checkout - help!</p>
-                  <p className="text-gray-600 text-sm">A: Try refreshing the page, using a different browser, checking your internet connection, or contacting Lauren at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a>.</p>
+                  <p className="text-gray-600 text-sm">A: Try refreshing the page, using a different browser, checking your internet connection, or contacting us at <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">maiduelementaryptc@gmail.com</a> or call <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">916-749-0848</a>.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800">Q: Can I change my ticket selection after purchase?</p>
@@ -759,8 +762,12 @@ export default function VolunteerSelectPage() {
                 <span>Still have questions?</span>
               </span>
               <br />
-              <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-                Contact Lauren at maiduelementaryptc@gmail.com
+                <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
+                Contact us at maiduelementaryptc@gmail.com
+              </a>
+              <br />
+              <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
+                Or call 916-749-0848
               </a>
             </p>
           </div>

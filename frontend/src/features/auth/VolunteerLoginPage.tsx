@@ -201,7 +201,11 @@ export default function VolunteerLoginPage() {
                 </span>
                 <br />
                 <a href="mailto:maiduelementaryptc@gmail.com" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-                  Contact Lauren at maiduelementaryptc@gmail.com
+                  Contact us at maiduelementaryptc@gmail.com
+                </a>
+                <br />
+                <a href="tel:916-749-0848" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
+                  Or call 916-749-0848
                 </a>
               </p>
             </div>
