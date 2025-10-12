@@ -1,15 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { DateTime } = require('luxon');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
-const DB_PATH = process.env.DATABASE_PATH || './data/sprouter_events.db';
+const DB_PATH = process.env.DATABASE_PATH || '/tmp/sprouter_events.db';
 
 // Database helper functions
 function runQuery(sql, params = []) {
@@ -34,274 +30,344 @@ function getQuery(sql, params = []) {
   });
 }
 
-function allQuery(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(DB_PATH);
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-      db.close();
-    });
-  });
+// Initialize database
+async function initDatabase() {
+  try {
+    // Create tables
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id TEXT UNIQUE NOT NULL,
+        household_id TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS households (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        household_id TEXT UNIQUE NOT NULL,
+        volunteer_code TEXT,
+        volunteer_redeemed BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS volunteer_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS user_logins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        user_type TEXT NOT NULL,
+        session_id TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        login_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME
+      )
+    `);
+
+    // Add sample data
+    await runQuery(`
+      INSERT OR IGNORE INTO students (student_id, household_id) 
+      VALUES (?, ?)
+    `, ['33727', 'HH_33727']);
+
+    await runQuery(`
+      INSERT OR IGNORE INTO households (household_id, volunteer_redeemed) 
+      VALUES (?, ?)
+    `, ['HH_33727', false]);
+
+    await runQuery(`
+      INSERT OR IGNORE INTO volunteer_codes (code, email, name) 
+      VALUES (?, ?, ?)
+    `, ['339933', 'admin@maidu.com', 'Admin']);
+
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
 }
 
-// Express app
-const app = express();
-
-// Middleware
-app.use(cors({
-  origin: ['https://maidutickets.com', 'https://sproutersecure.com'],
-  credentials: true
-}));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// Student login endpoint
-app.post('/login', async (req, res) => {
+// Main handler
+exports.handler = async (event, context) => {
   try {
-    const { studentId } = req.body;
+    // Initialize database on first run
+    await initDatabase();
 
-    if (!studentId) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'Student ID is required' 
-      });
-      return;
+    const { httpMethod, path, body, headers } = event;
+    const pathSegments = path.split('/').filter(Boolean);
+    const endpoint = pathSegments[pathSegments.length - 1];
+
+    console.log(`API call: ${httpMethod} ${path} -> ${endpoint}`);
+
+    // Health check
+    if (httpMethod === 'GET' && endpoint === 'health') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        },
+        body: JSON.stringify({ 
+          status: 'OK', 
+          timestamp: new Date().toISOString(),
+          endpoint: endpoint
+        })
+      };
     }
 
-    // Find student by student ID
-    const student = await getQuery(
-      'SELECT * FROM students WHERE student_id = ?',
-      [studentId]
-    );
+    // Student login
+    if (httpMethod === 'POST' && endpoint === 'login') {
+      const { studentId } = JSON.parse(body || '{}');
 
-    if (!student) {
-      console.log(`❌ Invalid student login attempt: ${studentId}`);
-      res.status(404).json({ 
-        success: false, 
-        message: 'Student ID not found. Please check your Student ID and try again.' 
-      });
-      return;
+      if (!studentId) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Student ID is required' 
+          })
+        };
+      }
+
+      // Find student
+      const student = await getQuery(
+        'SELECT * FROM students WHERE student_id = ?',
+        [studentId]
+      );
+
+      if (!student) {
+        console.log(`❌ Invalid student login attempt: ${studentId}`);
+        return {
+          statusCode: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Student ID not found. Please check your Student ID and try again.' 
+          })
+        };
+      }
+
+      console.log(`✅ Valid student login: ${studentId} (Household: ${student.household_id})`);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          householdId: student.household_id,
+          studentId: student.student_id 
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Track login
+      const sessionId = bcrypt.hashSync(student.household_id + Date.now(), 10);
+      const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
+
+      await runQuery(`
+        INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        student.household_id,
+        'student',
+        sessionId,
+        headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        headers['user-agent'] || '',
+        new Date().toISOString(),
+        expiresAt
+      ]);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          success: true,
+          token,
+          householdId: student.household_id,
+          isVolunteer: false
+        })
+      };
     }
 
-    console.log(`✅ Valid student login: ${studentId} (Household: ${student.household_id})`);
+    // Volunteer login
+    if (httpMethod === 'POST' && endpoint === 'volunteer-login') {
+      const { volunteerCode, email } = JSON.parse(body || '{}');
 
-    // Get household information
-    const household = await getQuery(
-      'SELECT * FROM households WHERE household_id = ?',
-      [student.household_id]
-    );
+      if (!volunteerCode || !email) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Volunteer code and email are required' 
+          })
+        };
+      }
 
-    if (!household) {
-      res.status(500).json({ 
-        success: false, 
-        message: 'Household not found' 
-      });
-      return;
+      // Find volunteer
+      const volunteer = await getQuery(
+        'SELECT * FROM volunteer_codes WHERE code = ? AND email = ?',
+        [volunteerCode.trim(), email.trim().toLowerCase()]
+      );
+
+      if (!volunteer) {
+        console.log(`❌ Invalid volunteer login attempt: ${volunteerCode} / ${email}`);
+        return {
+          statusCode: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            success: false, 
+            message: 'Invalid volunteer code or email. Please try again.' 
+          })
+        };
+      }
+
+      console.log(`✅ Valid volunteer login: ${volunteerCode} (${volunteer.name})`);
+
+      // Check if admin
+      const isAdmin = volunteerCode === '339933' && volunteer.email.toLowerCase() === 'admin@maidu.com';
+      const volunteerHouseholdId = isAdmin ? 'ADMIN' : `VOL_${volunteerCode}`;
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          householdId: volunteerHouseholdId,
+          volunteerCode: volunteerCode,
+          isVolunteer: true,
+          isAdmin: isAdmin
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Track login
+      const sessionId = bcrypt.hashSync(volunteerHouseholdId + Date.now(), 10);
+      const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
+
+      await runQuery(`
+        INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        volunteerHouseholdId,
+        'volunteer',
+        sessionId,
+        headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        headers['user-agent'] || '',
+        new Date().toISOString(),
+        expiresAt
+      ]);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          success: true,
+          token,
+          householdId: volunteerHouseholdId,
+          isVolunteer: true,
+          isAdmin: isAdmin
+        })
+      };
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        householdId: student.household_id,
-        studentId: student.student_id 
+    // Analytics endpoint
+    if (httpMethod === 'GET' && endpoint === 'analytics') {
+      const totalLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins');
+      const studentLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins WHERE user_type = ?', ['student']);
+      const volunteerLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins WHERE user_type = ?', ['volunteer']);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          totalLogins: totalLogins?.count || 0,
+          studentLogins: studentLogins?.count || 0,
+          volunteerLogins: volunteerLogins?.count || 0,
+          totalShowSelections: 0,
+          totalPurchases: 0,
+          totalRevenue: 0,
+          showBreakdown: {},
+          recentActivity: [],
+          topUsers: [],
+          dailyLimits: []
+        })
+      };
+    }
+
+    // Handle OPTIONS requests for CORS
+    if (httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        },
+        body: ''
+      };
+    }
+
+    // Not found
+    return {
+      statusCode: 404,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
       },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Create session
-    const sessionId = bcrypt.hashSync(student.household_id + Date.now(), 10);
-    const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
-
-    // Track user activity
-    await runQuery(`
-      INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      student.household_id,
-      'student',
-      sessionId,
-      req.headers['x-forwarded-for'] || req.connection.remoteAddress || '',
-      req.headers['user-agent'] || '',
-      new Date().toISOString(),
-      expiresAt
-    ]);
-
-    res.json({
-      success: true,
-      token,
-      householdId: student.household_id,
-      isVolunteer: false
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
-  }
-});
-
-// Volunteer login endpoint
-app.post('/volunteer-login', async (req, res) => {
-  try {
-    const { volunteerCode, email } = req.body;
-
-    if (!volunteerCode || !email) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'Volunteer code and email are required' 
-      });
-      return;
-    }
-
-    // Find volunteer by code and email
-    const volunteer = await getQuery(
-      'SELECT * FROM volunteer_codes WHERE code = ? AND email = ?',
-      [volunteerCode.trim(), email.trim().toLowerCase()]
-    );
-
-    if (!volunteer) {
-      console.log(`❌ Invalid volunteer login attempt: ${volunteerCode} / ${email}`);
-      res.status(404).json({ 
-        success: false, 
-        message: 'Invalid volunteer code or email. Please try again.' 
-      });
-      return;
-    }
-
-    console.log(`✅ Valid volunteer login: ${volunteerCode} (${volunteer.name})`);
-
-    // Check if this is an admin login
-    const isAdmin = volunteerCode === '339933' && volunteer.email.toLowerCase() === 'admin@maidu.com';
-    
-    // Generate JWT token for volunteer (or admin)
-    const volunteerHouseholdId = isAdmin ? 'ADMIN' : `VOL_${volunteerCode}`;
-    const token = jwt.sign(
-      { 
-        householdId: volunteerHouseholdId,
-        volunteerCode: volunteerCode,
-        isVolunteer: true,
-        isAdmin: isAdmin
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Create session
-    const sessionId = bcrypt.hashSync(volunteerHouseholdId + Date.now(), 10);
-    const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
-
-    // Track user activity
-    await runQuery(`
-      INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      volunteerHouseholdId,
-      'volunteer',
-      sessionId,
-      req.headers['x-forwarded-for'] || req.connection.remoteAddress || '',
-      req.headers['user-agent'] || '',
-      new Date().toISOString(),
-      expiresAt
-    ]);
-
-    const response = {
-      success: true,
-      token,
-      householdId: volunteerHouseholdId,
-      isVolunteer: true,
-      isAdmin: isAdmin
+      body: JSON.stringify({ 
+        error: 'Not found',
+        method: httpMethod,
+        path: path,
+        endpoint: endpoint
+      })
     };
 
-    res.json(response);
-
   } catch (error) {
-    console.error('Volunteer login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
+    console.error('Function error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message
+      })
+    };
   }
-});
-
-// Analytics endpoint
-app.get('/analytics', async (req, res) => {
-  try {
-    const timeframe = req.query.timeframe || '24h';
-    
-    // Get basic analytics data
-    const totalLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins');
-    const studentLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins WHERE user_type = ?', ['student']);
-    const volunteerLogins = await getQuery('SELECT COUNT(*) as count FROM user_logins WHERE user_type = ?', ['volunteer']);
-    const totalSelections = await getQuery('SELECT COUNT(*) as count FROM show_selections');
-    const totalPurchases = await getQuery('SELECT COUNT(*) as count FROM purchases');
-    const totalRevenue = await getQuery('SELECT SUM(total_cost) as total FROM purchases WHERE payment_status = ?', ['completed']);
-
-    res.json({
-      totalLogins: totalLogins?.count || 0,
-      studentLogins: studentLogins?.count || 0,
-      volunteerLogins: volunteerLogins?.count || 0,
-      totalShowSelections: totalSelections?.count || 0,
-      totalPurchases: totalPurchases?.count || 0,
-      totalRevenue: totalRevenue?.total || 0,
-      showBreakdown: {},
-      recentActivity: [],
-      topUsers: [],
-      dailyLimits: []
-    });
-
-  } catch (error) {
-    console.error('Analytics error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
-  }
-});
-
-// Export the handler for Netlify Functions
-exports.handler = async (event, context) => {
-  // Set up the request and response objects
-  const req = {
-    method: event.httpMethod,
-    url: event.path,
-    headers: event.headers,
-    body: event.body ? JSON.parse(event.body) : {},
-    query: event.queryStringParameters || {}
-  };
-
-  const res = {
-    status: (code) => ({ json: (data) => ({ statusCode: code, body: JSON.stringify(data) }) }),
-    json: (data) => ({ statusCode: 200, body: JSON.stringify(data) })
-  };
-
-  // Route the request
-  if (req.method === 'GET' && req.url === '/health') {
-    return res.json({ status: 'OK', timestamp: new Date().toISOString() });
-  }
-  
-  if (req.method === 'POST' && req.url === '/login') {
-    return app._router.handle(req, res);
-  }
-  
-  if (req.method === 'POST' && req.url === '/volunteer-login') {
-    return app._router.handle(req, res);
-  }
-  
-  if (req.method === 'GET' && req.url === '/analytics') {
-    return app._router.handle(req, res);
-  }
-
-  return {
-    statusCode: 404,
-    body: JSON.stringify({ error: 'Not found' })
-  };
 };
