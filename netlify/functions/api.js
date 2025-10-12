@@ -181,7 +181,7 @@ exports.handler = async (event, context) => {
 
       // Track login
       const sessionId = bcrypt.hashSync(student.household_id + Date.now(), 10);
-      const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       await runQuery(`
         INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
@@ -270,7 +270,7 @@ exports.handler = async (event, context) => {
 
       // Track login
       const sessionId = bcrypt.hashSync(volunteerHouseholdId + Date.now(), 10);
-      const expiresAt = DateTime.now().plus({ hours: 24 }).toISOString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       await runQuery(`
         INSERT INTO user_logins (user_id, user_type, session_id, ip_address, user_agent, login_timestamp, expires_at)
