@@ -203,7 +203,6 @@ const students = [
   { student_id: '39699', household_id: 'HH_39699' },
   { student_id: '39700', household_id: 'HH_39700' },
   { student_id: '39701', household_id: 'HH_39701' },
-  { student_id: '39701', household_id: 'HH_39701' },
   { student_id: '39702', household_id: 'HH_39702' },
   { student_id: '39703', household_id: 'HH_39703' },
   { student_id: '39704', household_id: 'HH_39704' },
@@ -599,7 +598,11 @@ function verifySession(sessionId) {
 exports.handler = async (event, context) => {
   try {
     const { httpMethod, path, headers, body } = event;
-    const pathSegments = path.split('/').filter(Boolean);
+    
+    // Extract the route from the full Netlify path
+    // Path will be like: /.netlify/functions/api/login
+    // We need to extract: /login
+    const route = path.replace('/.netlify/functions/api', '') || '/';
     
     // CORS headers
     const corsHeaders = {
@@ -619,16 +622,21 @@ exports.handler = async (event, context) => {
     }
     
     // Health check
-    if (path === '/health') {
+    if (route === '/health' || route === '/') {
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ status: 'OK', timestamp: new Date().toISOString() })
+        body: JSON.stringify({ 
+          status: 'OK', 
+          timestamp: new Date().toISOString(),
+          students: students.length,
+          volunteers: volunteerCodes.length
+        })
       };
     }
     
     // Student login
-    if (path === '/login' && httpMethod === 'POST') {
+    if (route === '/login' && httpMethod === 'POST') {
       const { studentId } = JSON.parse(body);
       
       if (!studentId) {
@@ -693,7 +701,7 @@ exports.handler = async (event, context) => {
     }
     
     // Volunteer login
-    if (path === '/volunteer-login' && httpMethod === 'POST') {
+    if (route === '/volunteer-login' && httpMethod === 'POST') {
       const { volunteerCode, email } = JSON.parse(body);
       
       if (!volunteerCode || !email) {
@@ -765,7 +773,7 @@ exports.handler = async (event, context) => {
     }
     
     // Analytics endpoint
-    if (path === '/analytics' && httpMethod === 'GET') {
+    if (route === '/analytics' && httpMethod === 'GET') {
       const totalLogins = userLogins.length;
       const studentLogins = userLogins.filter(u => u.user_type === 'student').length;
       const volunteerLogins = userLogins.filter(u => u.user_type === 'volunteer').length;
@@ -813,7 +821,11 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 404,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Route not found' })
+      body: JSON.stringify({ 
+        error: 'Route not found',
+        requestedRoute: route,
+        availableRoutes: ['/health', '/login', '/volunteer-login', '/analytics']
+      })
     };
     
   } catch (error) {
