@@ -534,8 +534,10 @@ exports.handler = async (event, context) => {
           };
         }
       
-      // Check if admin
-      const isAdmin = volunteerCode === '339933' && volunteer.email.toLowerCase() === 'admin@maidu.com';
+      // Check if admin using environment variables
+      const adminCode = process.env.ADMIN_CODE || 'ADMIN2024';
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+      const isAdmin = volunteerCode === adminCode && volunteer.email.toLowerCase() === adminEmail.toLowerCase();
       const volunteerHouseholdId = isAdmin ? 'ADMIN' : `VOL_${volunteerCode}`;
       
       // Generate JWT token

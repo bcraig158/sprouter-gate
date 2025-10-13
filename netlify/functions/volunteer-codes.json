@@ -227,8 +227,8 @@
   },
   {
     "name": "Admin",
-    "email": "admin@maidu.com",
-    "code": "339933",
-    "notes": "System Administrator"
+    "email": "admin@example.com",
+    "code": "000000",
+    "notes": "System Administrator - Use environment variables"
   }
 ]

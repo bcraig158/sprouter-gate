@@ -66,7 +66,7 @@ export const authService = {
   loginAdmin: async (code: string) => {
     const response = await api.post('/volunteer-login', {
       volunteerCode: code,
-      email: 'admin@maidu.com'
+      email: process.env.VITE_ADMIN_EMAIL || 'admin@example.com'
     });
     return response.data;
   },
