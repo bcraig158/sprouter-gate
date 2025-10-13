@@ -10,7 +10,10 @@ class SecureStorage {
     // Try multiple storage locations for persistence across deployments
     this.storageDir = this.getPersistentStorageDir();
     this.dataFile = path.join(this.storageDir, 'analytics.json');
-    this.encryptionKey = process.env.ANALYTICS_ENCRYPTION_KEY || this.generateKey();
+    this.encryptionKey = process.env.ANALYTICS_ENCRYPTION_KEY;
+    if (!this.encryptionKey) {
+      throw new Error('ANALYTICS_ENCRYPTION_KEY environment variable is required');
+    }
     
     // Ensure storage directory exists
     this.ensureStorageDir();
