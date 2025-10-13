@@ -6,8 +6,8 @@ const getApiBaseUrl = () => {
   if (import.meta.env.DEV) {
     return '/api'; // Use proxy in development
   }
-  // In production, use Netlify Functions
-  return '/.netlify/functions/api';
+  // In production, use the redirect path that goes to Netlify Functions
+  return '/api';
 };
 
 // Get current domain for tracking (removed unused function)
