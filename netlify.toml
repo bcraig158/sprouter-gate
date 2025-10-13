@@ -1,8 +1,16 @@
 [build]
-  base = "frontend"
-  command = "npm install --legacy-peer-deps && npm run build:production"
-  publish = "dist"
-  functions = "netlify/functions"
+  command = "npm --prefix frontend install && npm --prefix frontend run build:production && npm --prefix netlify/functions ci"
+  publish = "frontend/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["sqlite3"]
+  included_files = [
+    "netlify/functions/sprouter_events.db",
+    "netlify/functions/volunteer-codes.json"
+  ]
+  timeout = 30
 
 [build.environment]
   NODE_VERSION = "18"
@@ -12,15 +20,9 @@
   VITE_API_URL = "https://maidutickets.com"
   JWT_SECRET = "86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe"
   ANALYTICS_ENCRYPTION_KEY = "276970bfb90ec83a75fbd70a1685557a297b31f4586f6b8e098c81511b7a0bef"
-  ADMIN_CODE = "ADMIN2024"
   DATABASE_PATH = "./sprouter_events.db"
   SESSION_STORAGE_PATH = "./sessions.json"
 
-# Function timeout and configuration
-[functions]
-  timeout = 30
-
-# API redirects - MUST come before catch-all redirect
 [[redirects]]
   from = "/api/auth"
   to = "/.netlify/functions/auth"
@@ -33,10 +35,9 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
-# Domain-specific redirects
 [[redirects]]
   from = "https://www.maidutickets.com/*"
   to = "https://maidutickets.com/:splat"
@@ -49,7 +50,6 @@
   status = 301
   force = true
 
-# SPA catch-all redirect - MUST be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
