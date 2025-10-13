@@ -30,7 +30,7 @@ class EventTracker {
     }
 
     try {
-      const response = await fetch('/api/track-event', {
+      const response = await fetch('/.netlify/functions/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

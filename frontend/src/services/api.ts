@@ -52,7 +52,7 @@ api.interceptors.response.use(
 // Authentication service
 export const authService = {
   loginStudent: async (studentId: string) => {
-    const response = await api.post('/auth', {
+    const response = await api.post('/.netlify/functions/auth', {
       action: 'login_student',
       studentId,
       domain: getCurrentDomain()
@@ -61,7 +61,7 @@ export const authService = {
   },
 
   loginVolunteer: async (code: string, email: string) => {
-    const response = await api.post('/auth', {
+    const response = await api.post('/.netlify/functions/auth', {
       action: 'login_volunteer',
       code,
       email,
@@ -71,7 +71,7 @@ export const authService = {
   },
 
   loginAdmin: async (code: string) => {
-    const response = await api.post('/auth', {
+    const response = await api.post('/.netlify/functions/auth', {
       action: 'login_admin',
       code,
       domain: getCurrentDomain()
@@ -80,7 +80,7 @@ export const authService = {
   },
 
   verifyToken: async (token: string) => {
-    const response = await api.post('/auth', {
+    const response = await api.post('/.netlify/functions/auth', {
       action: 'verify_token',
       token
     });
@@ -91,7 +91,7 @@ export const authService = {
 // Analytics service
 export const analyticsService = {
   getAnalytics: async (token: string) => {
-    const response = await api.get('/analytics', {
+    const response = await api.get('/.netlify/functions/analytics', {
       headers: {
         Authorization: `Bearer ${token}`
       }

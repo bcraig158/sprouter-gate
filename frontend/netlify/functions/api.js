@@ -641,7 +641,7 @@ exports.handler = async (event, context) => {
         console.log('📊 Enhanced activity tracking:', activities);
         
         // Store activities in session data
-        const sessionsPath = path.join(__dirname, '../../../data/sessions.json');
+        const sessionsPath = path.join(__dirname, '../../data/sessions.json');
         let sessions = { activities: [] };
         
         try {
@@ -688,7 +688,7 @@ exports.handler = async (event, context) => {
         console.log('📊 Enhanced session tracking:', sessionData);
         
         // Store session data
-        const sessionsPath = path.join(__dirname, '../../../data/sessions.json');
+        const sessionsPath = path.join(__dirname, '../../data/sessions.json');
         let sessions = { sessions: [] };
         
         try {

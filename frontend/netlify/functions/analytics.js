@@ -19,7 +19,7 @@ db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
   }
 });
 
-const sessionsPath = process.env.SESSION_STORAGE_PATH || path.join(__dirname, '../../../data/sessions.json');
+const sessionsPath = process.env.SESSION_STORAGE_PATH || path.join(__dirname, '../../data/sessions.json');
 
 function loadSessions() {
   try {
