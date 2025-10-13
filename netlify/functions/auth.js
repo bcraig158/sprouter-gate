@@ -123,7 +123,7 @@ async function authenticateAdmin(code) {
     if (code === adminCode) {
       return {
         code: adminCode,
-        email: 'admin@maidu.com',
+        email: process.env.ADMIN_EMAIL || 'admin@example.com',
         name: 'System Administrator',
         role: 'admin',
         created_at: new Date().toISOString()
