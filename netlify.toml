@@ -1,6 +1,6 @@
 # Build from repo root; build frontend and install function deps
 [build]
-  command = "npm install && npm run build"
+  command = "npm run install:all && npm run build"
   publish = "frontend/dist"
 
 [build.environment]

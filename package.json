@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Sprouter Gate - Event Management System",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "netlify/functions"
-  ],
   "scripts": {
     "build": "npm run build:frontend && npm run build:functions",
     "build:frontend": "npm --prefix frontend run build:production",
@@ -15,6 +11,12 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "luxon": "^3.4.4",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"
