@@ -2,7 +2,7 @@
   base = "frontend"
   command = "npm install --legacy-peer-deps && npm run build:production"
   publish = "dist"
-  functions = "frontend/netlify/functions"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
