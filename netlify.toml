@@ -1,6 +1,6 @@
 # Build from repo root; build frontend and install function deps
 [build]
-  command = "npm --prefix netlify/functions ci && npm --prefix frontend ci && npm --prefix frontend run build:production"
+  command = "npm install && npm run build"
   publish = "frontend/dist"
 
 [build.environment]

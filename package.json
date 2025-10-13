@@ -1,0 +1,22 @@
+{
+  "name": "sprouter-gate",
+  "version": "1.0.0",
+  "description": "Sprouter Gate - Event Management System",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "netlify/functions"
+  ],
+  "scripts": {
+    "build": "npm run build:frontend && npm run build:functions",
+    "build:frontend": "npm --prefix frontend run build:production",
+    "build:functions": "npm --prefix netlify/functions ci",
+    "install:all": "npm install && npm --prefix frontend install && npm --prefix netlify/functions install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
