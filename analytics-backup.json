@@ -34,6 +34,30 @@
       "login_timestamp": "2025-10-13T04:23:19.148Z",
       "session_id": "$2b$10$X2lQSwYA.rHYaW4eiTC0ZuxlJGBI1d1Iij6MIB0/a9BWPv4hFyjDe",
       "domain": "unknown"
+    },
+    {
+      "user_id": "HH_39444",
+      "user_type": "student",
+      "identifier": "39444",
+      "email": "",
+      "name": "",
+      "ip_hash": "e3b0c44298fc1c14",
+      "user_agent_hash": "e3b0c44298fc1c14",
+      "login_timestamp": "2025-10-13T04:35:06.538Z",
+      "session_id": "$2b$10$6a7s4BjEJytImD8VivlnfepMJkvPokipid763b.a1wUm1tijTNkV2",
+      "domain": "unknown"
+    },
+    {
+      "user_id": "HH_39444",
+      "user_type": "student",
+      "identifier": "39444",
+      "email": "",
+      "name": "",
+      "ip_hash": "e3b0c44298fc1c14",
+      "user_agent_hash": "e3b0c44298fc1c14",
+      "login_timestamp": "2025-10-13T04:47:24.770Z",
+      "session_id": "$2b$10$hT/7dcQnEmTNoO8bJkun/Oh5lkn5ujayR3suoCRjmeEN7JWZZ4zCa",
+      "domain": "unknown"
     }
   ],
   "showSelections": [],
@@ -52,10 +76,24 @@
       "expiresAt": "2025-10-14T04:23:19.148Z",
       "createdAt": "2025-10-13T04:23:19.148Z",
       "stored_at": "2025-10-13T04:23:19.148Z"
+    },
+    "$2b$10$6a7s4BjEJytImD8VivlnfepMJkvPokipid763b.a1wUm1tijTNkV2": {
+      "sessionId": "$2b$10$6a7s4BjEJytImD8VivlnfepMJkvPokipid763b.a1wUm1tijTNkV2",
+      "householdId": "HH_39444",
+      "expiresAt": "2025-10-14T04:35:06.535Z",
+      "createdAt": "2025-10-13T04:35:06.535Z",
+      "stored_at": "2025-10-13T04:35:06.536Z"
+    },
+    "$2b$10$hT/7dcQnEmTNoO8bJkun/Oh5lkn5ujayR3suoCRjmeEN7JWZZ4zCa": {
+      "sessionId": "$2b$10$hT/7dcQnEmTNoO8bJkun/Oh5lkn5ujayR3suoCRjmeEN7JWZZ4zCa",
+      "householdId": "HH_39444",
+      "expiresAt": "2025-10-14T04:47:24.767Z",
+      "createdAt": "2025-10-13T04:47:24.767Z",
+      "stored_at": "2025-10-13T04:47:24.768Z"
     }
   },
   "metadata": {
-    "lastUpdated": "2025-10-13T04:23:19.148Z",
+    "lastUpdated": "2025-10-13T04:47:24.770Z",
     "version": "2.0",
     "storage": "netlify-secure-file",
     "encryption": "AES-256-CBC"

@@ -27,7 +27,7 @@
   external_node_modules = ["sqlite3"]
   timeout = 30
 
-# Handle client-side routing for React SPA
+# API redirects - MUST come before catch-all redirect
 [[redirects]]
   from = "/api/auth"
   to = "/.netlify/functions/auth"
@@ -56,6 +56,7 @@
   status = 301
   force = true
 
+# SPA catch-all redirect - MUST be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
