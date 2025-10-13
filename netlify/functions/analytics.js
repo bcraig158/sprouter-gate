@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const secureStorage = require('./secureStorage');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
@@ -131,6 +132,97 @@ function getAnalytics() {
 
   // Top households (from student sessions)
   recentSessions.students.forEach(session => {
+    if (session.household_id) {
+      analytics.topHouseholds[session.household_id] = (analytics.topHouseholds[session.household_id] || 0) + 1;
+    }
+  });
+
+  return analytics;
+}
+
+// Calculate session analytics from secureStorage data
+function calculateSessionAnalytics(analyticsData) {
+  const userLogins = analyticsData.userLogins || [];
+  const showSelections = analyticsData.showSelections || [];
+  const purchases = analyticsData.purchases || [];
+  const sessions = Array.isArray(analyticsData.sessions) ? analyticsData.sessions : [];
+  const activities = analyticsData.activities || [];
+  
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  // Filter to last 30 days
+  const recentLogins = userLogins.filter(login => new Date(login.login_timestamp) > thirtyDaysAgo);
+  const recentSelections = showSelections.filter(selection => new Date(selection.timestamp) > thirtyDaysAgo);
+  const recentPurchases = purchases.filter(purchase => new Date(purchase.timestamp) > thirtyDaysAgo);
+
+  // Calculate analytics
+  const analytics = {
+    totalLogins: recentLogins.length,
+    studentLogins: recentLogins.filter(l => l.user_type === 'student').length,
+    volunteerLogins: recentLogins.filter(l => l.user_type === 'volunteer').length,
+    adminLogins: recentLogins.filter(l => l.user_type === 'admin').length,
+    totalShowSelections: recentSelections.length,
+    totalPurchases: recentPurchases.length,
+    totalRevenue: recentPurchases.reduce((sum, p) => sum + (parseFloat(p.metadata?.total_cost) || 0), 0),
+    activeUsers: new Set(recentLogins.map(s => s.user_id)).size,
+    activeStudentUsers: new Set(recentLogins.filter(l => l.user_type === 'student').map(s => s.user_id)).size,
+    activeVolunteerUsers: new Set(recentLogins.filter(l => l.user_type === 'volunteer').map(s => s.user_id)).size,
+    activeUsersList: recentLogins
+      .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))
+      .slice(0, 20)
+      .map(session => ({
+        user_id: session.user_id,
+        user_type: session.user_type,
+        identifier: session.identifier,
+        login_timestamp: session.login_timestamp,
+        time_ago: Math.floor((Date.now() - new Date(session.login_timestamp).getTime()) / 1000 / 60) // minutes ago
+      })),
+    showBreakdown: {},
+    recentActivity: recentLogins.slice(0, 10),
+    topUsers: [],
+    limitViolations: [],
+    timeframe: '30 days',
+    byDomain: {
+      maidutickets: recentLogins.filter(l => l.domain?.includes('maidutickets')).length,
+      sproutersecure: recentLogins.filter(l => l.domain?.includes('sproutersecure')).length,
+      localhost: recentLogins.filter(l => l.domain?.includes('localhost')).length
+    },
+    byDate: {},
+    uniqueStudents: new Set(recentLogins.filter(l => l.user_type === 'student').map(s => s.user_id)).size,
+    uniqueVolunteers: new Set(recentLogins.filter(l => l.user_type === 'volunteer').map(s => s.user_id)).size,
+    recentSessions: recentLogins
+      .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))
+      .slice(0, 50),
+    hourlyDistribution: {},
+    userAgentStats: {},
+    topHouseholds: {}
+  };
+
+  // Count by date
+  recentLogins.forEach(session => {
+    const date = new Date(session.login_timestamp).toISOString().split('T')[0];
+    analytics.byDate[date] = (analytics.byDate[date] || 0) + 1;
+  });
+
+  // Hourly distribution
+  recentLogins.forEach(session => {
+    const hour = new Date(session.login_timestamp).getHours();
+    analytics.hourlyDistribution[hour] = (analytics.hourlyDistribution[hour] || 0) + 1;
+  });
+
+  // User agent stats
+  recentLogins.forEach(session => {
+    const ua = session.user_agent || 'unknown';
+    const browser = ua.includes('Chrome') ? 'Chrome' : 
+                   ua.includes('Firefox') ? 'Firefox' : 
+                   ua.includes('Safari') ? 'Safari' : 
+                   ua.includes('Edge') ? 'Edge' : 'Other';
+    analytics.userAgentStats[browser] = (analytics.userAgentStats[browser] || 0) + 1;
+  });
+
+  // Top households (from student sessions)
+  recentLogins.filter(l => l.user_type === 'student').forEach(session => {
     if (session.household_id) {
       analytics.topHouseholds[session.household_id] = (analytics.topHouseholds[session.household_id] || 0) + 1;
     }
@@ -400,7 +492,7 @@ exports.handler = async (event) => {
     }
 
     // Check if user is admin
-    if (decoded.type !== 'admin') {
+    if (!decoded.isAdmin) {
       return {
         statusCode: 403,
         headers,
@@ -408,11 +500,14 @@ exports.handler = async (event) => {
       };
     }
 
-    // Get session analytics
-    const sessionAnalytics = getAnalytics();
+    // Get analytics from secureStorage
+    const analyticsData = await secureStorage.getAnalytics();
     
     // Get database analytics
     const databaseAnalytics = await getDatabaseAnalytics();
+    
+    // Calculate session analytics from secureStorage data
+    const sessionAnalytics = calculateSessionAnalytics(analyticsData);
     
     // Combine analytics
     const combinedAnalytics = {
@@ -436,6 +531,14 @@ exports.handler = async (event) => {
       recentActivity: databaseAnalytics.recentActivity,
       // Database summary
       database: databaseAnalytics,
+      // Raw data from secureStorage
+      rawData: {
+        userLogins: analyticsData.userLogins || [],
+        showSelections: analyticsData.showSelections || [],
+        purchases: analyticsData.purchases || [],
+        sessions: analyticsData.sessions || [],
+        activities: analyticsData.activities || []
+      },
       generatedAt: new Date().toISOString(),
       timeRange: '30 days'
     };
