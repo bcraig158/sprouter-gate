@@ -9,7 +9,6 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
-  const location = useLocation();
 
   if (isLoading) {
     return (
