@@ -8,10 +8,11 @@ export default defineConfig({
     port: 3002,
     host: true, // Allow external connections
     proxy: {
+      // Use Netlify Dev for functions during local development
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8888',
         changeOrigin: true,
-        secure: false,
+        rewrite: (p) => p.replace(/^\/api/, '/.netlify/functions/api'),
       },
     },
   },

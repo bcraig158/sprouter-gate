@@ -1,9 +1,38 @@
+# Build from repo root; build frontend and install function deps
 [build]
-  command = "npm --prefix frontend install && npm --prefix frontend run build:production"
+  command = "npm --prefix netlify/functions ci && npm --prefix frontend ci && npm --prefix frontend run build:production"
   publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NODE_ENV = "production"
+  VITE_APP_ENV = "production"
+  VITE_APP_URL = "https://maidutickets.com"
+  VITE_API_URL = "https://maidutickets.com"
+  # Non-secret runtime config can remain here.
+  # Move secrets (JWT_SECRET, ANALYTICS_ENCRYPTION_KEY, ADMIN_CODE) to Netlify UI → Environment variables.
+  # Keep a simple relative DB path; code resolves it relative to the function bundle.
+  DATABASE_PATH = "sprouter_events.db"
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["sqlite3", "bcrypt"]
+  included_files = [
+    "netlify/functions/sprouter_events.db",
+    "netlify/functions/volunteer-codes.json"
+  ]
+  timeout = 30
+
+[[redirects]]
+  from = "/api/auth"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics"
+  to = "/.netlify/functions/analytics"
+  status = 200
 
 [[redirects]]
   from = "/api/*"
