@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import jwtDecode from 'jwt-decode';
 import sessionTracker from '../services/sessionTracking';
+import { authService } from '../services/api';
 
 interface User {
   householdId: string;
@@ -73,32 +74,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (studentId: string): Promise<boolean> => {
     try {
-      // Use backend API for authentication
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          studentId: studentId.trim()
-        })
-      });
-
-      const data = await response.json();
+      const data = await authService.loginStudent(studentId.trim());
       
       if (data.success) {
         setToken(data.token);
         const userData = {
-          householdId: data.householdId,
+          householdId: data.user.household_id,
           studentId: studentId.trim(),
           isVolunteer: false
         };
         setUser(userData);
         localStorage.setItem('token', data.token);
+        localStorage.setItem('sessionId', data.sessionId);
+        localStorage.setItem('user', JSON.stringify(data.user));
         
         // Initialize session tracking for new login
-        const sessionId = `session_${data.householdId}_${Date.now()}`;
-        sessionTracker.initialize(data.householdId, 'student', sessionId);
+        sessionTracker.initialize(data.user.household_id, 'student', data.sessionId);
         
         // Force flush data immediately
         setTimeout(() => {
@@ -116,34 +107,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const volunteerLogin = async (volunteerCode: string, email: string): Promise<boolean> => {
     try {
-      // Always use backend API for authentication
-      const response = await fetch('/api/volunteer-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          volunteerCode: volunteerCode.trim(),
-          email: email.trim()
-        })
-      });
-
-      const data = await response.json();
+      const data = await authService.loginVolunteer(volunteerCode.trim(), email.trim());
       
       if (data.success) {
         setToken(data.token);
         const userData = {
-          householdId: data.householdId,
+          householdId: data.user.code, // Using code as household identifier for volunteers
           volunteerCode: volunteerCode.trim(),
           isVolunteer: true,
-          isAdmin: data.isAdmin || false
+          isAdmin: data.user.role === 'admin'
         };
         setUser(userData);
         localStorage.setItem('token', data.token);
+        localStorage.setItem('sessionId', data.sessionId);
+        localStorage.setItem('user', JSON.stringify(data.user));
         
         // Initialize session tracking for volunteer login
-        const sessionId = `session_${data.householdId}_${Date.now()}`;
-        sessionTracker.initialize(data.householdId, 'volunteer', sessionId);
+        sessionTracker.initialize(data.user.code, 'volunteer', data.sessionId);
         
         // Force flush data immediately
         setTimeout(() => {

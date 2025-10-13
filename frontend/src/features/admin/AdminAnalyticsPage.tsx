@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { analyticsService } from '../../services/api';
 
 // Removed unused interfaces
 
@@ -155,17 +156,21 @@ export default function AdminAnalyticsPage() {
       console.log('Admin Analytics - Fetching data for timeframe:', selectedTimeframe);
       setIsLoading(true);
       
-      // Fetch enhanced analytics data from backend
-      const response = await fetch(`/api/analytics?timeframe=${selectedTimeframe}`);
-      console.log('Admin Analytics - Response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch analytics data: ${response.status} ${response.statusText}`);
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
       
-      const data = await response.json();
+      // Use new analytics service
+      const data = await analyticsService.getAnalytics(token);
       console.log('Admin Analytics - Data received:', data);
-      setAnalyticsData(data);
+      
+      if (data.success && data.data) {
+        setAnalyticsData(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to load analytics data');
+      }
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);
       // Show empty state instead of mock data

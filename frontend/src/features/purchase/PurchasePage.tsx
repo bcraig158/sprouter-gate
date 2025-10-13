@@ -47,6 +47,40 @@ export default function PurchasePage() {
     }
   }, [user, eventKey, purchaseData]);
 
+  // Track purchase completion (can be called when purchase is successful)
+  const trackPurchaseCompletion = async (quantity: number = 1, totalCost: number = 25) => {
+    try {
+      const response = await fetch('/.netlify/functions/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          action: 'track_purchase_completed',
+          show_id: eventKey,
+          quantity: quantity,
+          total_cost: totalCost,
+          user_id: user?.studentId || user?.volunteerCode,
+          user_type: user?.isVolunteer ? 'volunteer' : 'student'
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Purchase completion tracked successfully');
+      }
+    } catch (error) {
+      console.error('Failed to track purchase completion:', error);
+    }
+  };
+
+  // Expose tracking function globally for Sprouter callbacks
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).trackPurchaseCompletion = trackPurchaseCompletion;
+    }
+  }, [eventKey, user]);
+
   const handleIssueIntent = async () => {
     if (!eventKey) return;
     
@@ -54,6 +88,35 @@ export default function PurchasePage() {
     setError('');
 
     try {
+      // Track purchase intent for analytics
+      const trackPurchaseIntent = async () => {
+        try {
+          const response = await fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+        body: JSON.stringify({
+          action: 'track_purchase_intent',
+          show_id: eventKey,
+          quantity: 1,
+          user_id: user?.studentId || user?.volunteerCode,
+          user_type: user?.isVolunteer ? 'volunteer' : 'student'
+        })
+          });
+          
+          if (response.ok) {
+            console.log('💰 Purchase intent tracked successfully');
+          }
+        } catch (error) {
+          console.error('Failed to track purchase intent:', error);
+        }
+      };
+
+      // Track the purchase intent
+      await trackPurchaseIntent();
+
       if (import.meta.env.PROD) {
         // Production mode - use mock Sprouter URLs
         const mockSprouterUrls = getMockSprouterUrls();

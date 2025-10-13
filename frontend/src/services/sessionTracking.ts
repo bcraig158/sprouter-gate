@@ -220,12 +220,15 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending activities to backend:', activities);
-      const response = await fetch('/api/track-activity', {
+      const response = await fetch('/.netlify/functions/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(activities)
+        body: JSON.stringify({
+          action: 'track_activity',
+          activities
+        })
       });
 
       if (response.ok) {
@@ -251,12 +254,15 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending sessions to backend:', sessions);
-      const response = await fetch('/api/track-session', {
+      const response = await fetch('/.netlify/functions/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(sessions)
+        body: JSON.stringify({
+          action: 'track_session',
+          sessions
+        })
       });
 
       if (response.ok) {

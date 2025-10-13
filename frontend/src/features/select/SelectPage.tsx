@@ -107,6 +107,35 @@ export default function SelectPage() {
 
   const handleSelectSlot = async (night: 'tue' | 'thu', eventKey: string) => {
     try {
+      // Track show selection for analytics
+      const trackShowSelection = async () => {
+        try {
+          const response = await fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              action: 'track_show_selection',
+              show_id: eventKey,
+              show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
+              user_id: user?.studentId || user?.volunteerCode,
+              user_type: user?.isVolunteer ? 'volunteer' : 'student'
+            })
+          });
+          
+          if (response.ok) {
+            console.log('🎭 Show selection tracked successfully');
+          }
+        } catch (error) {
+          console.error('Failed to track show selection:', error);
+        }
+      };
+
+      // Track the selection
+      await trackShowSelection();
+
       if (import.meta.env.PROD) {
         // Production mode - skip API call and go directly to purchase
         navigate(`/purchase/${eventKey}`);

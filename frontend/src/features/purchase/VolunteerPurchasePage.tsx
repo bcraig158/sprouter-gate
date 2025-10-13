@@ -42,6 +42,35 @@ export default function VolunteerPurchasePage() {
     setError('');
 
     try {
+      // Track purchase intent for analytics
+      const trackPurchaseIntent = async () => {
+        try {
+          const response = await fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              action: 'track_purchase_intent',
+              show_id: eventKey,
+              quantity: 4, // Volunteers get 4 tickets
+              user_id: user?.studentId || user?.volunteerCode,
+              user_type: 'volunteer'
+            })
+          });
+          
+          if (response.ok) {
+            console.log('💰 Volunteer purchase intent tracked successfully');
+          }
+        } catch (error) {
+          console.error('Failed to track volunteer purchase intent:', error);
+        }
+      };
+
+      // Track the purchase intent
+      await trackPurchaseIntent();
+
       if (import.meta.env.PROD) {
         // Production mode - use mock Sprouter URLs with volunteer benefits
         const mockSprouterUrls = getMockSprouterUrls();
@@ -67,6 +96,40 @@ export default function VolunteerPurchasePage() {
       setIsLoading(false);
     }
   };
+
+  // Track purchase completion (can be called when purchase is successful)
+  const trackPurchaseCompletion = async (quantity: number = 4, totalCost: number = 100) => {
+    try {
+      const response = await fetch('/.netlify/functions/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          action: 'track_purchase_completed',
+          show_id: eventKey,
+          quantity: quantity,
+          total_cost: totalCost,
+          user_id: user?.studentId || user?.volunteerCode,
+          user_type: 'volunteer'
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Volunteer purchase completion tracked successfully');
+      }
+    } catch (error) {
+      console.error('Failed to track volunteer purchase completion:', error);
+    }
+  };
+
+  // Expose tracking function globally for Sprouter callbacks
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).trackPurchaseCompletion = trackPurchaseCompletion;
+    }
+  }, [eventKey, user]);
 
   const handleBackToSelect = () => {
     navigate('/volunteer-select');

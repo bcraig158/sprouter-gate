@@ -2,6 +2,18 @@
 node_modules/
 */node_modules/
 
+# Old functions directory (moved to frontend/netlify/functions/)
+netlify/functions/
+
+# Remove unnecessary files
+frontend/vercel.json
+frontend/.DS_Store
+frontend/netlify/functions/analytics-backup.json
+frontend/netlify/functions/backend/
+
+# Remove outdated scripts
+Scripts/
+
 # Environment variables
 .env
 .env.local
@@ -18,10 +30,12 @@ build/
 # Database files (except production databases)
 *.sqlite
 # Allow specific production database files
-!backend/data/sprouter_events.db
-!netlify/functions/backend/data/sprouter_events.db
-!netlify/functions/sprouter_events.db
-data/
+!frontend/netlify/functions/sprouter_events.db
+
+# Session data (temporary, regenerates)
+data/sessions.json
+# But keep the directory structure
+!data/.gitkeep
 
 # Logs
 logs
