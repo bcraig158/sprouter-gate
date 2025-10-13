@@ -1,7 +1,15 @@
-# Build from repo root; build frontend and install function deps
 [build]
+  base = "."
   command = "cd frontend && npm install && npm run build:production"
   publish = "frontend/dist"
+
+[functions]
+  directory = "netlify/functions"
+  included_files = [
+    "netlify/functions/sprouter_events.db",
+    "netlify/functions/volunteer-codes.json",
+    "netlify/functions/sessions.json"
+  ]
 
 [build.environment]
   NODE_VERSION = "18"
@@ -9,17 +17,15 @@
   VITE_APP_ENV = "production"
   VITE_APP_URL = "https://maidutickets.com"
   VITE_API_URL = "https://maidutickets.com"
-  # Non-secret runtime config can remain here.
-  # Move secrets (JWT_SECRET, ANALYTICS_ENCRYPTION_KEY, ADMIN_CODE) to Netlify UI → Environment variables.
-  # Keep a simple relative DB path; code resolves it relative to the function bundle.
-  DATABASE_PATH = "sprouter_events.db"
+  JWT_SECRET = "86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe"
+  ANALYTICS_ENCRYPTION_KEY = "276970bfb90ec83a75fbd70a1685557a297b31f4586f6b8e098c81511b7a0bef"
+  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
+  NPM_CONFIG_ENGINE_STRICT = "false"
+  NPM_CONFIG_AUDIT = "false"
+  NPM_CONFIG_FUND = "false"
+  NPM_CONFIG_LOGLEVEL = "error"
 
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-  external_node_modules = ["sqlite3", "bcrypt"]
-  timeout = 30
-
+# API redirects to Netlify Functions
 [[redirects]]
   from = "/api/auth"
   to = "/.netlify/functions/auth"
