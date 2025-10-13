@@ -1,0 +1,63 @@
+{
+  "userLogins": [
+    {
+      "user_id": "TEST_FILE_STORAGE_001",
+      "user_type": "student",
+      "identifier": "12345",
+      "email": "te***@example.com",
+      "name": "T***r",
+      "ip_hash": "12ca17b49af22894",
+      "user_agent_hash": "5f261ee5817b7f8d",
+      "login_timestamp": "2025-10-12T18:41:46.814Z",
+      "session_id": "TEST_SESSION_001"
+    },
+    {
+      "user_id": "HH_39444",
+      "user_type": "student",
+      "identifier": "39444",
+      "email": "",
+      "name": "",
+      "ip_hash": "12ca17b49af22894",
+      "user_agent_hash": "9bcb1d02c50ee351",
+      "login_timestamp": "2025-10-13T04:23:19.084Z",
+      "session_id": "$2b$10$quG62i/tzK.F3L9MP7a9Z.b6uac29pYpEo2MnDmieuwI.1QSaBjVa",
+      "domain": "unknown"
+    },
+    {
+      "user_id": "ADMIN",
+      "user_type": "volunteer",
+      "identifier": "339933",
+      "email": "ad***@maidu.com",
+      "name": "A***n",
+      "ip_hash": "12ca17b49af22894",
+      "user_agent_hash": "9bcb1d02c50ee351",
+      "login_timestamp": "2025-10-13T04:23:19.148Z",
+      "session_id": "$2b$10$X2lQSwYA.rHYaW4eiTC0ZuxlJGBI1d1Iij6MIB0/a9BWPv4hFyjDe",
+      "domain": "unknown"
+    }
+  ],
+  "showSelections": [],
+  "purchases": [],
+  "sessions": {
+    "$2b$10$quG62i/tzK.F3L9MP7a9Z.b6uac29pYpEo2MnDmieuwI.1QSaBjVa": {
+      "sessionId": "$2b$10$quG62i/tzK.F3L9MP7a9Z.b6uac29pYpEo2MnDmieuwI.1QSaBjVa",
+      "householdId": "HH_39444",
+      "expiresAt": "2025-10-14T04:23:19.081Z",
+      "createdAt": "2025-10-13T04:23:19.082Z",
+      "stored_at": "2025-10-13T04:23:19.083Z"
+    },
+    "$2b$10$X2lQSwYA.rHYaW4eiTC0ZuxlJGBI1d1Iij6MIB0/a9BWPv4hFyjDe": {
+      "sessionId": "$2b$10$X2lQSwYA.rHYaW4eiTC0ZuxlJGBI1d1Iij6MIB0/a9BWPv4hFyjDe",
+      "householdId": "ADMIN",
+      "expiresAt": "2025-10-14T04:23:19.148Z",
+      "createdAt": "2025-10-13T04:23:19.148Z",
+      "stored_at": "2025-10-13T04:23:19.148Z"
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2025-10-13T04:23:19.148Z",
+    "version": "2.0",
+    "storage": "netlify-secure-file",
+    "encryption": "AES-256-CBC"
+  }
+}

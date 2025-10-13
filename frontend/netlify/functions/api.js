@@ -56,16 +56,44 @@ async function initializeStorage() {
 // Initialize on startup
 initializeStorage();
 
-// Legacy helper functions - no longer used (authentication moved to auth.js)
-// These functions are kept for backward compatibility but are not called
+// Database authentication functions
 function findStudent(studentId) {
-  // Legacy function - authentication now handled by auth.js
-  return null;
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT * FROM students WHERE student_id = ?',
+      [studentId],
+      (err, row) => {
+        if (err) {
+          console.error('Database error finding student:', err);
+          reject(err);
+        } else {
+          resolve(row);
+        }
+      }
+    );
+  });
 }
 
 function findVolunteer(code, email) {
-  // Legacy function - authentication now handled by auth.js
-  return null;
+  return new Promise((resolve, reject) => {
+    // Use JSON file as primary source for volunteer authentication
+    try {
+      const volunteerCodesPath = path.join(__dirname, 'volunteer-codes.json');
+      if (fs.existsSync(volunteerCodesPath)) {
+        const volunteerCodes = JSON.parse(fs.readFileSync(volunteerCodesPath, 'utf8'));
+        const volunteer = volunteerCodes.find(v => 
+          v.code === code && v.email.toLowerCase() === email.toLowerCase()
+        );
+        resolve(volunteer);
+      } else {
+        console.error('Volunteer codes file not found');
+        resolve(null);
+      }
+    } catch (error) {
+      console.error('Error reading volunteer codes file:', error);
+      resolve(null);
+    }
+  });
 }
 
 // ✅ PERSISTENT SESSION STORAGE
@@ -319,33 +347,33 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Legacy authentication routes removed - authentication now handled by auth.js
-    if (false && route === '/login' && httpMethod === 'POST') {
+    // Student login route - re-enabled for production
+    if (route === '/login' && httpMethod === 'POST') {
       try {
         const { studentId } = JSON.parse(body);
       
-      if (!studentId) {
-        return {
-          statusCode: 400,
-          headers: corsHeaders,
-          body: JSON.stringify({ 
-            success: false, 
-            message: 'Student ID is required' 
-          })
-        };
-      }
-      
-      const student = findStudent(studentId);
-      if (!student) {
-        return {
-          statusCode: 404,
-          headers: corsHeaders,
-          body: JSON.stringify({ 
-            success: false, 
-            message: 'Student ID not found. Please check your Student ID and try again.' 
-          })
-        };
-      }
+        if (!studentId) {
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Student ID is required' 
+            })
+          };
+        }
+        
+        const student = await findStudent(studentId);
+        if (!student) {
+          return {
+            statusCode: 404,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Student ID not found. Please check your Student ID and try again.' 
+            })
+          };
+        }
       
       // Generate JWT token
       const token = jwt.sign(
@@ -386,6 +414,12 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           token,
+          user: {
+            student_id: student.student_id,
+            household_id: student.household_id,
+            type: 'student'
+          },
+          sessionId: sessionId,
           householdId: student.household_id,
           isVolunteer: false
         })
@@ -402,33 +436,33 @@ exports.handler = async (event, context) => {
       }
     }
     
-    // Legacy volunteer login route removed - authentication now handled by auth.js
-    if (false && route === '/volunteer-login' && httpMethod === 'POST') {
+    // Volunteer login route - re-enabled for production
+    if (route === '/volunteer-login' && httpMethod === 'POST') {
       try {
         const { volunteerCode, email } = JSON.parse(body);
       
-      if (!volunteerCode || !email) {
-        return {
-          statusCode: 400,
-          headers: corsHeaders,
-          body: JSON.stringify({ 
-            success: false, 
-            message: 'Volunteer code and email are required' 
-          })
-        };
-      }
-      
-      const volunteer = findVolunteer(volunteerCode, email);
-      if (!volunteer) {
-        return {
-          statusCode: 404,
-          headers: corsHeaders,
-          body: JSON.stringify({ 
-            success: false, 
-            message: 'Invalid volunteer code or email. Please check your credentials and try again.' 
-          })
-        };
-      }
+        if (!volunteerCode || !email) {
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Volunteer code and email are required' 
+            })
+          };
+        }
+        
+        const volunteer = await findVolunteer(volunteerCode, email);
+        if (!volunteer) {
+          return {
+            statusCode: 404,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Invalid volunteer code or email. Please check your credentials and try again.' 
+            })
+          };
+        }
       
       // Check if admin
       const isAdmin = volunteerCode === '339933' && volunteer.email.toLowerCase() === 'admin@maidu.com';
@@ -475,6 +509,14 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           token,
+          user: {
+            code: volunteerCode,
+            email: volunteer.email,
+            name: volunteer.name,
+            type: 'volunteer',
+            role: isAdmin ? 'admin' : 'volunteer'
+          },
+          sessionId: sessionId,
           householdId: volunteerHouseholdId,
           isVolunteer: true,
           isAdmin: isAdmin

@@ -10,10 +10,7 @@ const getApiBaseUrl = () => {
   return '/.netlify/functions/api';
 };
 
-// Get current domain for tracking
-const getCurrentDomain = () => {
-  return window.location.hostname;
-};
+// Get current domain for tracking (removed unused function)
 
 const api = axios.create({
   baseURL: getApiBaseUrl() || undefined,
@@ -52,29 +49,24 @@ api.interceptors.response.use(
 // Authentication service
 export const authService = {
   loginStudent: async (studentId: string) => {
-    const response = await api.post('/.netlify/functions/auth', {
-      action: 'login_student',
-      studentId,
-      domain: getCurrentDomain()
+    const response = await api.post('/login', {
+      studentId
     });
     return response.data;
   },
 
   loginVolunteer: async (code: string, email: string) => {
-    const response = await api.post('/.netlify/functions/auth', {
-      action: 'login_volunteer',
-      code,
-      email,
-      domain: getCurrentDomain()
+    const response = await api.post('/volunteer-login', {
+      volunteerCode: code,
+      email
     });
     return response.data;
   },
 
   loginAdmin: async (code: string) => {
-    const response = await api.post('/.netlify/functions/auth', {
-      action: 'login_admin',
-      code,
-      domain: getCurrentDomain()
+    const response = await api.post('/volunteer-login', {
+      volunteerCode: code,
+      email: 'admin@maidu.com'
     });
     return response.data;
   },
