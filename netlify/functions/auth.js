@@ -7,7 +7,10 @@ const path = require('path');
 const fs = require('fs');
 
 // Environment variables
-const JWT_SECRET = process.env.JWT_SECRET || '86d2bbcb5cd6a7b84f1e84473a95c976fd1febc5955da91779765d8df109304812e3c2b6410eb4c92cfa524f17e0263649f3b164297c0c94dcc0798682f1c8fe';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 // Database connection with improved path resolution
 const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'sprouter_events.db');
