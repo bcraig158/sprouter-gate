@@ -1,50 +1,14 @@
 [build]
-  command = "npm --prefix frontend install && npm --prefix frontend run build:production && npm --prefix netlify/functions ci"
+  command = "npm --prefix frontend install && npm --prefix frontend run build:production"
   publish = "frontend/dist"
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
-  external_node_modules = ["sqlite3"]
-  included_files = [
-    "netlify/functions/sprouter_events.db",
-    "netlify/functions/volunteer-codes.json"
-  ]
-  timeout = 30
-
-[build.environment]
-  NODE_VERSION = "18"
-  NODE_ENV = "production"
-  VITE_APP_ENV = "production"
-  VITE_APP_URL = "https://maidutickets.com"
-  VITE_API_URL = "https://maidutickets.com"
-
-[[redirects]]
-  from = "/api/auth"
-  to = "/.netlify/functions/auth"
-  status = 200
-
-[[redirects]]
-  from = "/api/analytics"
-  to = "/.netlify/functions/analytics"
-  status = 200
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
-
-[[redirects]]
-  from = "https://www.maidutickets.com/*"
-  to = "https://maidutickets.com/:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "https://www.sproutersecure.com/*"
-  to = "https://sproutersecure.com/:splat"
-  status = 301
-  force = true
 
 [[redirects]]
   from = "/*"
