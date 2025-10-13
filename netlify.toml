@@ -18,10 +18,7 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sqlite3", "bcrypt"]
-  included_files = [
-    "netlify/functions/sprouter_events.db",
-    "netlify/functions/volunteer-codes.json"
-  ]
+  included_files = ["netlify/functions/sprouter_events.db", "netlify/functions/volunteer-codes.json"]
   timeout = 30
 
 [[redirects]]
