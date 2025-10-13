@@ -1,6 +1,6 @@
 # Build from repo root; build frontend and install function deps
 [build]
-  command = "npm run install:all && npm run build"
+  command = "cd frontend && npm install && npm run build:production"
   publish = "frontend/dist"
 
 [build.environment]
@@ -18,7 +18,6 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sqlite3", "bcrypt"]
-  included_files = ["netlify/functions/sprouter_events.db", "netlify/functions/volunteer-codes.json"]
   timeout = 30
 
 [[redirects]]
