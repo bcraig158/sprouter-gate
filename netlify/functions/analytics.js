@@ -495,7 +495,7 @@ exports.handler = async (event) => {
     }
 
     // Check if user is admin
-    if (!decoded.isAdmin) {
+    if (decoded.type !== 'admin') {
       return {
         statusCode: 403,
         headers,
