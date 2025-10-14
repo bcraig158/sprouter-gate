@@ -230,5 +230,11 @@
     "email": "admin@example.com",
     "code": "000000",
     "notes": "System Administrator - Use environment variables"
+  },
+  {
+    "name": "Ashton Radican",
+    "email": "ashtonradican@gmail.com",
+    "code": "54321",
+    "notes": "Temporary volunteer code - valid for 1 week"
   }
 ]
