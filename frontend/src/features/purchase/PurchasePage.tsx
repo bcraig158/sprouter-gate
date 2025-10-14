@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
-import { getMockSprouterUrls } from '../../utils/mockData';
 import eventTracker from '../../services/eventTracking';
 
 interface PurchaseResponse {
@@ -117,25 +116,12 @@ export default function PurchasePage() {
       // Track the purchase intent
       await trackPurchaseIntent();
 
-      if (import.meta.env.PROD) {
-        // Production mode - use mock Sprouter URLs
-        const mockSprouterUrls = getMockSprouterUrls();
-        const mockData = {
-          success: true,
-          intentId: `intent_${Date.now()}`,
-          sprouterUrl: mockSprouterUrls[eventKey as keyof typeof mockSprouterUrls],
-          eventKey,
-          ticketsRequested: 1
-        };
-        setPurchaseData(mockData);
-      } else {
-        // Development mode - use API
-        const response = await api.post('/issue-intent', {
-          eventKey,
-          ticketsRequested: 1 // This would come from the selection process
-        });
-        setPurchaseData(response.data);
-      }
+      // Always use real API for production tracking
+      const response = await api.post('/issue-intent', {
+        eventKey,
+        ticketsRequested: 1 // This would come from the selection process
+      });
+      setPurchaseData(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create purchase intent');
     } finally {

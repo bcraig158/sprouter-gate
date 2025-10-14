@@ -1,23 +1,13 @@
 'use strict';
-// --- BEGIN: robust path resolution for bundled assets ---
+// --- BEGIN: Netlify Functions path resolution ---
 const path = require('path');
 const fs = require('fs');
-// Ensure DATABASE_PATH and VOLUNTEER_CODES_PATH are absolute and point to files
-const resolveRel = (p, fallback) => {
-  if (!p) return path.join(__dirname, fallback);
-  return path.isAbsolute(p) ? p : path.join(__dirname, p);
-};
-// If env provides a value, make it absolute; otherwise default to files next to this function
-process.env.DATABASE_PATH = resolveRel(process.env.DATABASE_PATH, 'sprouter_events.db');
-process.env.VOLUNTEER_CODES_PATH = resolveRel(process.env.VOLUNTEER_CODES_PATH || 'volunteer-codes.json', 'volunteer-codes.json');
-// Optional debug: log once if files are missing (helps triage in Netlify logs)
-if (!fs.existsSync(process.env.DATABASE_PATH)) {
-  console.warn('[api] DATABASE_PATH not found:', process.env.DATABASE_PATH);
-}
-if (!fs.existsSync(process.env.VOLUNTEER_CODES_PATH)) {
-  console.warn('[api] VOLUNTEER_CODES_PATH not found:', process.env.VOLUNTEER_CODES_PATH);
-}
-// --- END: robust path resolution for bundled assets ---
+
+// For Netlify Functions, files are bundled with the function
+// Database and volunteer codes are in the same directory as this function
+const dbPath = path.join(__dirname, 'sprouter_events.db');
+const volunteerCodesPath = path.join(__dirname, 'volunteer-codes.json');
+// --- END: Netlify Functions path resolution ---
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -26,12 +16,8 @@ const crypto = require('crypto');
 const secureStorage = require('./secureStorage');
 const sqlite3 = require('sqlite3').verbose();
 
-// Database connection with improved path resolution
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'sprouter_events.db');
-console.log(`🗄️ Database path: ${dbPath}`);
-console.log(`🗄️ Database exists: ${require('fs').existsSync(dbPath)}`);
-console.log(`🗄️ Current directory: ${__dirname}`);
-console.log(`🗄️ Files in directory: ${require('fs').readdirSync(__dirname).join(', ')}`);
+// Database connection for Netlify Functions
+// Database connection established
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -361,7 +347,7 @@ exports.handler = async (event, context) => {
     // Default to root if no route
     route = route || '/';
     
-    console.log(`🔍 Processing route: ${route} (from path: ${path})`);
+    // Processing route: ${route}
     
     // CORS headers
     const corsHeaders = {
@@ -398,9 +384,69 @@ exports.handler = async (event, context) => {
           message: 'API is running',
           version: '2.0',
           authentication: 'Database + JSON file',
-          endpoints: ['/health', '/analytics', '/export-data', '/track_activity', '/track_session']
+          endpoints: ['/health', '/analytics', '/export-data', '/track_activity', '/track_session', '/track-batch', '/debug-data']
         })
       };
+    }
+    
+    // Debug data endpoint (for testing data collection)
+    if (route === '/debug-data' && httpMethod === 'GET') {
+      try {
+        // Get counts from database
+        const userLoginsCount = await new Promise((resolve) => {
+          db.get('SELECT COUNT(*) as count FROM user_logins', (err, row) => {
+            resolve(err ? 0 : row.count);
+          });
+        });
+        
+        const activitiesCount = await new Promise((resolve) => {
+          db.get('SELECT COUNT(*) as count FROM user_activity_timeline', (err, row) => {
+            resolve(err ? 0 : row.count);
+          });
+        });
+        
+        const sessionsCount = await new Promise((resolve) => {
+          db.get('SELECT COUNT(*) as count FROM sessions', (err, row) => {
+            resolve(err ? 0 : row.count);
+          });
+        });
+        
+        const recentLogins = await new Promise((resolve) => {
+          db.all('SELECT user_id, user_type, login_timestamp FROM user_logins ORDER BY login_timestamp DESC LIMIT 5', (err, rows) => {
+            resolve(err ? [] : rows);
+          });
+        });
+        
+        const recentActivities = await new Promise((resolve) => {
+          db.all('SELECT user_id, activity_type, timestamp FROM user_activity_timeline ORDER BY timestamp DESC LIMIT 5', (err, rows) => {
+            resolve(err ? [] : rows);
+          });
+        });
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              counts: {
+                userLogins: userLoginsCount,
+                activities: activitiesCount,
+                sessions: sessionsCount
+              },
+              recentLogins,
+              recentActivities,
+              timestamp: new Date().toISOString()
+            }
+          })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
     }
     
     // Student login route - re-enabled for production
@@ -619,121 +665,168 @@ exports.handler = async (event, context) => {
       }
     }
     
-    // Track event interaction
-    if (route === '/track-event' && httpMethod === 'POST') {
-      // Handle both parsed and unparsed body
-      let requestData;
-      if (typeof body === 'string') {
-        requestData = JSON.parse(body);
-      } else {
-        requestData = body;
-      }
-      const { eventKey, eventType, userId, userType, metadata } = requestData;
-      
-      const eventData = {
-        event_key: eventKey,
-        event_type: eventType, // 'sprouter_embed_loaded', 'sprouter_checkout_started', 'sprouter_checkout_completed', 'sprouter_checkout_abandoned'
-        user_id: userId,
-        user_type: userType,
-        metadata: metadata || {},
-        timestamp: new Date().toISOString(),
-        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-        user_agent: headers['user-agent'] || ''
-      };
-      
-        // Store in secure file storage
-        await secureStorage.storeEvent(eventData);
-      
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({ success: true, tracked: eventData })
-      };
-    }
-    
-    // Track page view and session activity
-    if (route === '/track-session' && httpMethod === 'POST') {
-      console.log('📊 Session tracking request received:', body);
-      // Handle both parsed and unparsed body
-      let requestData;
-      if (typeof body === 'string') {
-        requestData = JSON.parse(body);
-      } else {
-        requestData = body;
-      }
-      const sessionDataArray = requestData;
-      
-      // Handle both single session and array of sessions
-      const sessions = Array.isArray(sessionDataArray) ? sessionDataArray : [sessionDataArray];
-      
-      for (const sessionData of sessions) {
-        const { userId, userType, page, sessionId, timeOnPage, referrer } = sessionData;
+    // Track batch data (for beacon API)
+    if (route === '/track-batch' && httpMethod === 'POST') {
+      try {
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { activities, sessions } = requestData;
         
-        const enhancedSessionData = {
-          user_id: userId,
-          user_type: userType,
-          session_id: sessionId,
-          page: page,
-          time_on_page: timeOnPage,
-          referrer: referrer,
-          timestamp: new Date().toISOString(),
-          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-          user_agent: headers['user-agent'] || '',
-          domain: headers.host || 'unknown'
+        let activitiesTracked = 0;
+        let sessionsTracked = 0;
+        
+        // Process activities
+        if (activities && Array.isArray(activities)) {
+          for (const activityData of activities) {
+            const { userId, userType, activityType, page, metadata } = activityData;
+            
+            const enhancedActivityData = {
+              user_id: userId,
+              user_type: userType,
+              activity_type: activityType,
+              page: page,
+              metadata: metadata || {},
+              timestamp: new Date().toISOString(),
+              ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+              user_agent: headers['user-agent'] || ''
+            };
+            
+            // Store activity data in SQLite database
+            db.run(`
+              INSERT INTO user_activity_timeline (
+                user_id, user_type, activity_type, page, metadata, 
+                timestamp, ip_address, user_agent
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+              enhancedActivityData.user_id,
+              enhancedActivityData.user_type,
+              enhancedActivityData.activity_type,
+              enhancedActivityData.page,
+              JSON.stringify(enhancedActivityData.metadata),
+              enhancedActivityData.timestamp,
+              enhancedActivityData.ip_address,
+              enhancedActivityData.user_agent
+            ], function(err) {
+              if (err) {
+                console.error('❌ Batch activity database insert error:', err);
+              } else {
+                activitiesTracked++;
+              }
+            });
+          }
+        }
+        
+        // Process sessions
+        if (sessions && Array.isArray(sessions)) {
+          for (const sessionData of sessions) {
+            const { userId, userType, page, sessionId, timeOnPage, referrer } = sessionData;
+            
+            const enhancedSessionData = {
+              user_id: userId,
+              user_type: userType,
+              session_id: sessionId,
+              page: page,
+              time_on_page: timeOnPage,
+              referrer: referrer,
+              timestamp: new Date().toISOString(),
+              ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+              user_agent: headers['user-agent'] || '',
+              domain: headers.host || 'unknown'
+            };
+            
+            // Store session data in SQLite database
+            db.run(`
+              INSERT INTO sessions (
+                user_id, user_type, session_id, page, time_on_page, 
+                referrer, timestamp, ip_address, user_agent, domain
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+              enhancedSessionData.user_id,
+              enhancedSessionData.user_type,
+              enhancedSessionData.session_id,
+              enhancedSessionData.page,
+              enhancedSessionData.time_on_page,
+              enhancedSessionData.referrer,
+              enhancedSessionData.timestamp,
+              enhancedSessionData.ip_address,
+              enhancedSessionData.user_agent,
+              enhancedSessionData.domain
+            ], function(err) {
+              if (err) {
+                console.error('❌ Batch session database insert error:', err);
+              } else {
+                sessionsTracked++;
+              }
+            });
+          }
+        }
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            success: true, 
+            activitiesTracked,
+            sessionsTracked
+          })
         };
-        
-        // Store session data
-        await secureStorage.storeSession(enhancedSessionData);
-        console.log('✅ Session stored:', enhancedSessionData.user_id, enhancedSessionData.page);
+      } catch (error) {
+        console.error('Batch tracking error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
       }
-      
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({ success: true, sessionsTracked: sessions.length })
-      };
     }
     
-    // Track user activity (clicks, scrolls, etc.)
-    if (route === '/track-activity' && httpMethod === 'POST') {
-      console.log('📊 Activity tracking request received:', body);
-      // Handle both parsed and unparsed body
-      let requestData;
-      if (typeof body === 'string') {
-        requestData = JSON.parse(body);
-      } else {
-        requestData = body;
-      }
-      const activityDataArray = requestData;
-      
-      // Handle both single activity and array of activities
-      const activities = Array.isArray(activityDataArray) ? activityDataArray : [activityDataArray];
-      
-      for (const activityData of activities) {
-        const { userId, userType, activityType, page, metadata } = activityData;
+    // Track event interaction (Sprouter iframe events)
+    if (route === '/track-event' && httpMethod === 'POST') {
+      try {
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { eventKey, eventType, userId, userType, metadata } = requestData;
         
-        const enhancedActivityData = {
+        const eventData = {
+          event_key: eventKey,
+          event_type: eventType, // 'sprouter_embed_loaded', 'sprouter_checkout_started', 'sprouter_checkout_completed', 'sprouter_checkout_abandoned'
           user_id: userId,
           user_type: userType,
-          activity_type: activityType, // 'page_view', 'click', 'scroll', 'form_interaction', 'time_on_page'
-          page: page,
           metadata: metadata || {},
           timestamp: new Date().toISOString(),
           ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
           user_agent: headers['user-agent'] || ''
         };
         
-        // Store activity data
-        await secureStorage.storeActivity(enhancedActivityData);
-        console.log('✅ Activity stored:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
+        // Store in secure file storage
+        await secureStorage.storeEvent(eventData);
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true, tracked: eventData })
+        };
+      } catch (error) {
+        console.error('Event tracking error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
       }
-      
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({ success: true, activitiesTracked: activities.length })
-      };
     }
+    
+    
     
     // Analytics endpoint removed - handled by separate analytics.js function
     
@@ -783,7 +876,7 @@ exports.handler = async (event, context) => {
     
     // Default response
     // New tracking endpoints for enhanced analytics
-    if (route === '/track_activity' && httpMethod === 'POST') {
+    if ((route === '/track_activity' || route === '/track-activity') && httpMethod === 'POST') {
       try {
         // Handle both parsed and unparsed body
         let requestData;
@@ -792,40 +885,53 @@ exports.handler = async (event, context) => {
         } else {
           requestData = body;
         }
-        const { activities } = requestData;
-        console.log('📊 Enhanced activity tracking:', activities);
+        const activityDataArray = requestData;
         
-        // Store activities in session data
-        const sessionsPath = path.join(__dirname, '../../data/sessions.json');
-        let sessions = { activities: [] };
+        // Handle both single activity and array of activities
+        const activities = Array.isArray(activityDataArray) ? activityDataArray : [activityDataArray];
         
-        try {
-          if (fs.existsSync(sessionsPath)) {
-            sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-          }
-        } catch (err) {
-          console.error('Error loading sessions:', err);
-        }
-        
-        if (!sessions.activities) sessions.activities = [];
-        sessions.activities.push(...activities);
-        
-        // Keep only last 1000 activities to prevent file from growing too large
-        if (sessions.activities.length > 1000) {
-          sessions.activities = sessions.activities.slice(-1000);
-        }
-        
-        try {
-          fs.mkdirSync(path.dirname(sessionsPath), { recursive: true });
-          fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
-        } catch (err) {
-          console.error('Error saving sessions:', err);
+        for (const activityData of activities) {
+          const { userId, userType, activityType, page, metadata } = activityData;
+          
+          const enhancedActivityData = {
+            user_id: userId,
+            user_type: userType,
+            activity_type: activityType, // 'page_view', 'click', 'scroll', 'form_interaction', 'time_on_page'
+            page: page,
+            metadata: metadata || {},
+            timestamp: new Date().toISOString(),
+            ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+            user_agent: headers['user-agent'] || ''
+          };
+          
+          // Store activity data in SQLite database
+          db.run(`
+            INSERT INTO user_activity_timeline (
+              user_id, user_type, activity_type, page, metadata, 
+              timestamp, ip_address, user_agent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            enhancedActivityData.user_id,
+            enhancedActivityData.user_type,
+            enhancedActivityData.activity_type,
+            enhancedActivityData.page,
+            JSON.stringify(enhancedActivityData.metadata),
+            enhancedActivityData.timestamp,
+            enhancedActivityData.ip_address,
+            enhancedActivityData.user_agent
+          ], function(err) {
+            if (err) {
+              console.error('❌ Activity database insert error:', err);
+            } else {
+              console.log('✅ Activity stored in database:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
+            }
+          });
         }
         
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify({ success: true, message: 'Activities tracked' })
+          body: JSON.stringify({ success: true, activitiesTracked: activities.length })
         };
       } catch (error) {
         console.error('Activity tracking error:', error);
@@ -837,7 +943,7 @@ exports.handler = async (event, context) => {
       }
     }
     
-    if (route === '/track_session' && httpMethod === 'POST') {
+    if ((route === '/track_session' || route === '/track-session') && httpMethod === 'POST') {
       try {
         // Handle both parsed and unparsed body
         let requestData;
@@ -846,40 +952,57 @@ exports.handler = async (event, context) => {
         } else {
           requestData = body;
         }
-        const { sessions: sessionData } = requestData;
-        console.log('📊 Enhanced session tracking:', sessionData);
+        const sessionDataArray = requestData;
         
-        // Store session data
-        const sessionsPath = path.join(__dirname, '../../data/sessions.json');
-        let sessions = { sessions: [] };
+        // Handle both single session and array of sessions
+        const sessions = Array.isArray(sessionDataArray) ? sessionDataArray : [sessionDataArray];
         
-        try {
-          if (fs.existsSync(sessionsPath)) {
-            sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-          }
-        } catch (err) {
-          console.error('Error loading sessions:', err);
-        }
-        
-        if (!sessions.sessions) sessions.sessions = [];
-        sessions.sessions.push(...sessionData);
-        
-        // Keep only last 500 sessions
-        if (sessions.sessions.length > 500) {
-          sessions.sessions = sessions.sessions.slice(-500);
-        }
-        
-        try {
-          fs.mkdirSync(path.dirname(sessionsPath), { recursive: true });
-          fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
-        } catch (err) {
-          console.error('Error saving sessions:', err);
+        for (const sessionData of sessions) {
+          const { userId, userType, page, sessionId, timeOnPage, referrer } = sessionData;
+          
+          const enhancedSessionData = {
+            user_id: userId,
+            user_type: userType,
+            session_id: sessionId,
+            page: page,
+            time_on_page: timeOnPage,
+            referrer: referrer,
+            timestamp: new Date().toISOString(),
+            ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+            user_agent: headers['user-agent'] || '',
+            domain: headers.host || 'unknown'
+          };
+          
+          // Store session data in SQLite database
+          db.run(`
+            INSERT INTO sessions (
+              user_id, user_type, session_id, page, time_on_page, 
+              referrer, timestamp, ip_address, user_agent, domain
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            enhancedSessionData.user_id,
+            enhancedSessionData.user_type,
+            enhancedSessionData.session_id,
+            enhancedSessionData.page,
+            enhancedSessionData.time_on_page,
+            enhancedSessionData.referrer,
+            enhancedSessionData.timestamp,
+            enhancedSessionData.ip_address,
+            enhancedSessionData.user_agent,
+            enhancedSessionData.domain
+          ], function(err) {
+            if (err) {
+              console.error('❌ Session database insert error:', err);
+            } else {
+              console.log('✅ Session stored in database:', enhancedSessionData.user_id, enhancedSessionData.page);
+            }
+          });
         }
         
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify({ success: true, message: 'Sessions tracked' })
+          body: JSON.stringify({ success: true, sessionsTracked: sessions.length })
         };
       } catch (error) {
         console.error('Session tracking error:', error);
@@ -1101,13 +1224,357 @@ exports.handler = async (event, context) => {
       }
     }
     
+    // Get user state - NEW ENDPOINT
+    if (route === '/state' && httpMethod === 'GET') {
+      try {
+        // Get user from token
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return {
+            statusCode: 401,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, message: 'No authorization token' })
+          };
+        }
+        
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Get user's current state from database
+        const userStmt = db.prepare(`
+          SELECT * FROM user_logins 
+          WHERE user_id = ? 
+          ORDER BY login_timestamp DESC 
+          LIMIT 1
+        `);
+        const user = userStmt.get(decoded.householdId);
+        
+        if (!user) {
+          return {
+            statusCode: 404,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, message: 'User not found' })
+          };
+        }
+        
+        // Get user's show selections
+        const selectionsStmt = db.prepare(`
+          SELECT * FROM show_selections 
+          WHERE user_id = ? 
+          ORDER BY selection_timestamp DESC
+        `);
+        const selections = selectionsStmt.all(decoded.householdId);
+        
+        // Get user's purchases
+        const purchasesStmt = db.prepare(`
+          SELECT * FROM purchases 
+          WHERE user_id = ? 
+          ORDER BY purchase_timestamp DESC
+        `);
+        const purchases = purchasesStmt.all(decoded.householdId);
+        
+        // Determine current phase based on selections and purchases
+        let currentPhase = 'initial';
+        if (selections.length > 0) {
+          currentPhase = 'selected';
+        }
+        if (purchases.length > 0) {
+          currentPhase = 'purchased';
+        }
+        
+        // Build state response
+        const stateResponse = {
+          householdId: decoded.householdId,
+          isVolunteer: user.user_type === 'volunteer',
+          currentPhase: currentPhase,
+          allowance: {
+            baseAllowance: 1,
+            volunteerBonus: user.user_type === 'volunteer' ? 2 : 0,
+            isVolunteer: user.user_type === 'volunteer',
+            totalAllowance: user.user_type === 'volunteer' ? 3 : 1
+          },
+          nightStates: [
+            {
+              night: 'tue',
+              phase: selections.some(s => s.show_id.includes('tue')) ? 'selected' : 'available',
+              selectedEvent: selections.find(s => s.show_id.includes('tue'))?.show_id || null
+            },
+            {
+              night: 'thu', 
+              phase: selections.some(s => s.show_id.includes('thu')) ? 'selected' : 'available',
+              selectedEvent: selections.find(s => s.show_id.includes('thu'))?.show_id || null
+            }
+          ],
+          availableEvents: [
+            {
+              key: 'tue-530',
+              name: 'Tuesday 5:30 PM',
+              date: '2025-10-28',
+              time: '17:30',
+              night: 'tue',
+              available: !selections.some(s => s.show_id === 'tue-530')
+            },
+            {
+              key: 'tue-630',
+              name: 'Tuesday 6:30 PM', 
+              date: '2025-10-28',
+              time: '18:30',
+              night: 'tue',
+              available: !selections.some(s => s.show_id === 'tue-630')
+            },
+            {
+              key: 'thu-530',
+              name: 'Thursday 5:30 PM',
+              date: '2025-10-30', 
+              time: '17:30',
+              night: 'thu',
+              available: !selections.some(s => s.show_id === 'thu-530')
+            },
+            {
+              key: 'thu-630',
+              name: 'Thursday 6:30 PM',
+              date: '2025-10-30',
+              time: '18:30', 
+              night: 'thu',
+              available: !selections.some(s => s.show_id === 'thu-630')
+            }
+          ]
+        };
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true, data: stateResponse })
+        };
+      } catch (error) {
+        console.error('State fetch error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+    
+    // Select slot - NEW ENDPOINT
+    if (route === '/select-slot' && httpMethod === 'POST') {
+      try {
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { night, eventKey, ticketsRequested } = requestData;
+        
+        // Get user from token
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return {
+            statusCode: 401,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, message: 'No authorization token' })
+          };
+        }
+        
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Store selection in database
+        const stmt = db.prepare(`
+          INSERT INTO show_selections (user_id, user_type, show_id, show_name, show_date, show_time, show_datetime, tickets_requested, selection_timestamp, session_id, ip_address, user_agent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        const showDate = eventKey.includes('thu') ? '2025-10-30' : '2025-10-28';
+        const showTime = eventKey.includes('630') ? '18:30' : '17:30';
+        const showDatetime = `${showDate} ${showTime}:00`;
+        const showName = eventKey.includes('tue') ? 
+          (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
+          (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
+        
+        stmt.run([
+          decoded.householdId,
+          decoded.isVolunteer ? 'volunteer' : 'student',
+          eventKey,
+          showName,
+          showDate,
+          showTime,
+          showDatetime,
+          ticketsRequested,
+          new Date().toISOString(),
+          'session_' + decoded.householdId + '_' + Date.now(),
+          headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          headers['user-agent'] || ''
+        ]);
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true, message: 'Slot selected successfully' })
+        };
+      } catch (error) {
+        console.error('Select slot error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+    
+    // Issue intent - NEW ENDPOINT
+    if (route === '/issue-intent' && httpMethod === 'POST') {
+      try {
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { eventKey, ticketsRequested } = requestData;
+        
+        // Get user from token
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return {
+            statusCode: 401,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, message: 'No authorization token' })
+          };
+        }
+        
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Create purchase intent
+        const intentId = `intent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Store intent in database
+        const stmt = db.prepare(`
+          INSERT INTO purchase_intents (user_id, user_type, show_id, show_name, show_date, show_time, show_datetime, tickets_requested, intent_timestamp, session_id, ip_address, user_agent, intent_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        const showDate = eventKey.includes('thu') ? '2025-10-30' : '2025-10-28';
+        const showTime = eventKey.includes('630') ? '18:30' : '17:30';
+        const showDatetime = `${showDate} ${showTime}:00`;
+        const showName = eventKey.includes('tue') ? 
+          (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
+          (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
+        
+        stmt.run([
+          decoded.householdId,
+          decoded.isVolunteer ? 'volunteer' : 'student',
+          eventKey,
+          showName,
+          showDate,
+          showTime,
+          showDatetime,
+          ticketsRequested,
+          new Date().toISOString(),
+          'session_' + decoded.householdId + '_' + Date.now(),
+          headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          headers['user-agent'] || '',
+          intentId
+        ]);
+        
+        // Generate Sprouter URL (mock for now)
+        const sprouterUrls = {
+          'tue-530': 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTYxNzc3NjNjNzFlNGM5ZDI5MTliYTZ5eWVrMzcwcw==',
+          'tue-630': 'https://events.sprouter.online/events/MTAvMjhALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALWJmMjE4YjRlY2YzYTM2NzczNTYxMjV5eWVrMzcxcw==',
+          'thu-530': 'https://events.sprouter.online/events/MTAvMzBALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTI0ZTQ1NDkxYTg4MjQ2NWU0MjhjZjl5eWVrMzcycw==',
+          'thu-630': 'https://events.sprouter.online/events/MTAvMzBALTY6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALWJmMjE4YjRlY2YzYTM2NzczNTYxMjV5eWVrMzczcw=='
+        };
+        
+        const response = {
+          success: true,
+          intentId: intentId,
+          sprouterUrl: sprouterUrls[eventKey] || sprouterUrls['tue-530'],
+          eventKey: eventKey,
+          ticketsRequested: ticketsRequested
+        };
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify(response)
+        };
+      } catch (error) {
+        console.error('Issue intent error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+    
+    // Get purchases - NEW ENDPOINT
+    if (route === '/purchases' && httpMethod === 'GET') {
+      try {
+        // Get user from token
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return {
+            statusCode: 401,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, message: 'No authorization token' })
+          };
+        }
+        
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Get user's purchases
+        const stmt = db.prepare(`
+          SELECT * FROM purchases 
+          WHERE user_id = ? 
+          ORDER BY purchase_timestamp DESC
+        `);
+        const purchases = stmt.all(decoded.householdId);
+        
+        // Format purchases for frontend
+        const formattedPurchases = purchases.map(purchase => ({
+          id: purchase.id,
+          eventKey: purchase.show_id,
+          eventName: purchase.show_id.includes('tue') ? 
+            (purchase.show_id.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
+            (purchase.show_id.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM'),
+          eventDate: purchase.show_date,
+          eventTime: purchase.show_time,
+          ticketsPurchased: purchase.tickets_purchased,
+          totalCost: purchase.total_cost,
+          status: purchase.payment_status,
+          transactionId: purchase.transaction_id,
+          purchaseDate: purchase.purchase_timestamp,
+          sprouterUrl: purchase.show_id === 'tue-530' ? 'https://events.sprouter.online/events/MTAvMjhALTU6MzBwbUAtfEAtc29ALXlvdUAtdGhpbmtALXlvdUAtY2FuQC1kYW5jZSFALTYxNzc3NjNjNzFlNGM5ZDI5MTliYTZ5eWVrMzcwcw==' : undefined
+        }));
+        
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true, data: formattedPurchases })
+        };
+      } catch (error) {
+        console.error('Get purchases error:', error);
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+    
     return {
       statusCode: 404,
       headers: corsHeaders,
       body: JSON.stringify({ 
         error: 'Route not found',
         requestedRoute: route,
-        availableRoutes: ['/health', '/analytics', '/export-data', '/track-event', '/track_activity', '/track_session', '/track_show_selection', '/track_purchase_intent', '/track_purchase_completed']
+        availableRoutes: ['/health', '/login', '/volunteer-login', '/track-event', '/track-activity', '/track-activity', '/track-session', '/track_session', '/track_show_selection', '/track_purchase_intent', '/track_purchase_completed', '/state', '/select-slot', '/issue-intent', '/purchases', '/export-data']
       })
     };
     

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import { formatDateTime, getTimeUntilEvent } from '../../utils/dateUtils';
-import { getMockState } from '../../utils/mockData';
 
 // FAQ Item Component
 const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
@@ -91,20 +90,9 @@ export default function VolunteerSelectPage() {
 
   const fetchState = async () => {
     try {
-      if (import.meta.env.PROD) {
-        // Production mode - use mock data with volunteer benefits
-        const mockState = getMockState(user?.householdId || 'VOL_123');
-        // Override to ensure volunteer benefits
-        mockState.isVolunteer = true;
-        mockState.allowance.isVolunteer = true;
-        mockState.allowance.volunteerBonus = 2;
-        mockState.allowance.totalAllowance = mockState.allowance.baseAllowance + mockState.allowance.volunteerBonus;
-        setState(mockState);
-      } else {
-        // Development mode - use API
-        const response = await api.get('/state');
-        setState(response.data);
-      }
+      // Always use real API for production tracking
+      const response = await api.get('/state');
+      setState(response.data);
     } catch (err) {
       setError('Failed to load your current state');
     } finally {
@@ -143,23 +131,18 @@ export default function VolunteerSelectPage() {
       // Track the selection
       await trackShowSelection();
 
-      if (import.meta.env.PROD) {
-        // Production mode - skip API call and go directly to purchase
-        navigate(`/purchase/${eventKey}`);
-      } else {
-        // Development mode - use API
-        await api.post('/select-slot', {
-          night,
-          eventKey,
-          ticketsRequested
-        });
-        
-        // Refresh state
-        await fetchState();
-        
-        // Navigate to purchase page
-        navigate(`/purchase/${eventKey}`);
-      }
+      // Always use real API for production tracking
+      await api.post('/select-slot', {
+        night,
+        eventKey,
+        ticketsRequested
+      });
+      
+      // Refresh state
+      await fetchState();
+      
+      // Navigate to purchase page
+      navigate(`/purchase/${eventKey}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to select slot');
     }

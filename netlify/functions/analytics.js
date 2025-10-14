@@ -506,16 +506,19 @@ exports.handler = async (event) => {
     // Get analytics from secureStorage
     const analyticsData = await secureStorage.getAnalytics();
     
-    // Get database analytics
+    // Get database analytics (primary source)
     const databaseAnalytics = await getDatabaseAnalytics();
     
-    // Calculate session analytics from secureStorage data
+    // Calculate session analytics from secureStorage data (fallback)
     const sessionAnalytics = calculateSessionAnalytics(analyticsData);
     
-    // Combine analytics
+    // Combine analytics - prioritize database data
     const combinedAnalytics = {
-      ...sessionAnalytics,
-      // Database analytics
+      // Use database analytics as primary source
+      totalLogins: databaseAnalytics.totalUserLogins || sessionAnalytics.totalLogins,
+      studentLogins: sessionAnalytics.studentLogins,
+      volunteerLogins: sessionAnalytics.volunteerLogins,
+      adminLogins: sessionAnalytics.adminLogins,
       totalShowSelections: databaseAnalytics.totalShowSelections,
       totalPurchases: databaseAnalytics.totalPurchases,
       totalRevenue: databaseAnalytics.totalRevenue,
@@ -523,18 +526,23 @@ exports.handler = async (event) => {
       totalSprouterSuccesses: databaseAnalytics.totalSprouterSuccesses,
       totalUserLogins: databaseAnalytics.totalUserLogins,
       totalActivityEvents: databaseAnalytics.totalActivityEvents,
+      activeUsers: databaseAnalytics.activeUsers,
+      activeUsersList: databaseAnalytics.activeUsersList,
       // Show breakdown
       showBreakdown: databaseAnalytics.showBreakdown,
       // Top users
       topUsers: databaseAnalytics.topUsers,
-      // Active users
-      activeUsers: databaseAnalytics.activeUsers,
-      activeUsersList: databaseAnalytics.activeUsersList,
       // Recent activity
       recentActivity: databaseAnalytics.recentActivity,
+      // Session analytics (from file storage as fallback)
+      byDomain: sessionAnalytics.byDomain,
+      byDate: sessionAnalytics.byDate,
+      hourlyDistribution: sessionAnalytics.hourlyDistribution,
+      userAgentStats: sessionAnalytics.userAgentStats,
+      topHouseholds: sessionAnalytics.topHouseholds,
       // Database summary
       database: databaseAnalytics,
-      // Raw data from secureStorage
+      // Raw data from secureStorage (for debugging)
       rawData: {
         userLogins: analyticsData.userLogins || [],
         showSelections: analyticsData.showSelections || [],
@@ -543,7 +551,8 @@ exports.handler = async (event) => {
         activities: analyticsData.activities || []
       },
       generatedAt: new Date().toISOString(),
-      timeRange: '30 days'
+      timeRange: '30 days',
+      dataSource: 'database_primary'
     };
     
     return {

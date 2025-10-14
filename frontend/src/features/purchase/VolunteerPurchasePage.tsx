@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
-import { getMockSprouterUrls } from '../../utils/mockData';
 
 interface PurchaseResponse {
   success: boolean;
@@ -71,25 +70,12 @@ export default function VolunteerPurchasePage() {
       // Track the purchase intent
       await trackPurchaseIntent();
 
-      if (import.meta.env.PROD) {
-        // Production mode - use mock Sprouter URLs with volunteer benefits
-        const mockSprouterUrls = getMockSprouterUrls();
-        const mockData = {
-          success: true,
-          intentId: `volunteer_intent_${Date.now()}`,
-          sprouterUrl: mockSprouterUrls[eventKey as keyof typeof mockSprouterUrls],
-          eventKey,
-          ticketsRequested: 4 // Volunteers get 4 tickets (2 base + 2 volunteer bonus)
-        };
-        setPurchaseData(mockData);
-      } else {
-        // Development mode - use API
-        const response = await api.post('/issue-intent', {
-          eventKey,
-          ticketsRequested: 4 // Volunteers get 4 tickets
-        });
-        setPurchaseData(response.data);
-      }
+      // Always use real API for production tracking
+      const response = await api.post('/issue-intent', {
+        eventKey,
+        ticketsRequested: 4 // Volunteers get 4 tickets
+      });
+      setPurchaseData(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create purchase intent');
     } finally {

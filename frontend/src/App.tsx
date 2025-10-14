@@ -13,16 +13,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import sessionTracker from './services/sessionTracking';
 
 function App() {
-  // Initialize global session tracking for anonymous users
+  // Initialize global session tracking
   React.useEffect(() => {
-    // Start tracking anonymous sessions immediately
-    const anonymousSessionId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionTracker.initialize('anonymous', 'student', anonymousSessionId);
-    
-    // Track initial page view
-    sessionTracker.trackPageView(window.location.pathname);
-    
-    console.log('Global session tracking initialized');
+    // Session tracker will auto-restore from localStorage if available
+    console.log('App initialized - session tracking ready');
   }, []);
 
   return (

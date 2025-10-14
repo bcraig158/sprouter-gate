@@ -25,6 +25,45 @@ class SessionTracker {
   private isTracking: boolean = false;
   private activityQueue: ActivityData[] = [];
   private sessionQueue: SessionData[] = [];
+  private sessionTimeout: number = 30 * 60 * 1000; // 30 minutes
+  private flushInterval: NodeJS.Timeout | null = null;
+
+  constructor() {
+    // Try to restore session from localStorage on initialization
+    this.restoreSession();
+  }
+
+  // Restore session from localStorage
+  private restoreSession() {
+    try {
+      const stored = localStorage.getItem('sprouter_session');
+      if (stored) {
+        const sessionData = JSON.parse(stored);
+        const now = Date.now();
+        
+        // Check if session is still valid (within timeout)
+        if (now - sessionData.timestamp < this.sessionTimeout) {
+          this.userId = sessionData.userId;
+          this.userType = sessionData.userType;
+          this.sessionId = sessionData.sessionId;
+          this.isTracking = true;
+          
+          this.setupPageTracking();
+          this.setupActivityTracking();
+          this.setupPeriodicFlush();
+          
+          console.log(`SessionTracker: Restored session for ${sessionData.userType} ${sessionData.userId}`);
+        } else {
+          // Session expired, clear it
+          localStorage.removeItem('sprouter_session');
+          console.log('SessionTracker: Session expired, cleared');
+        }
+      }
+    } catch (error) {
+      console.warn('SessionTracker: Failed to restore session:', error);
+      localStorage.removeItem('sprouter_session');
+    }
+  }
 
   // Initialize tracking for a user
   initialize(userId: string, userType: 'student' | 'volunteer', sessionId: string) {
@@ -32,8 +71,18 @@ class SessionTracker {
     this.userType = userType;
     this.sessionId = sessionId;
     this.isTracking = true;
+    
+    // Store session info in localStorage for persistence
+    localStorage.setItem('sprouter_session', JSON.stringify({
+      userId,
+      userType,
+      sessionId,
+      timestamp: Date.now()
+    }));
+    
     this.setupPageTracking();
     this.setupActivityTracking();
+    this.setupPeriodicFlush();
     
     // Immediately track the current page
     this.trackPageView(window.location.pathname);
@@ -132,12 +181,15 @@ class SessionTracker {
       sessionTracker.trackPageView(window.location.pathname);
     };
 
-    // Track page unload
+    // Track page unload with beacon API for guaranteed delivery
     window.addEventListener('beforeunload', () => {
       if (this.currentPage) {
         const timeOnPage = Date.now() - this.pageStartTime;
         this.trackSessionData(this.currentPage, timeOnPage);
       }
+      
+      // Use sendBeacon for guaranteed delivery
+      this.sendBeacon();
     });
 
     // Track visibility changes
@@ -285,6 +337,12 @@ class SessionTracker {
   stop() {
     this.isTracking = false;
     
+    // Clear periodic flush
+    if (this.flushInterval) {
+      clearInterval(this.flushInterval);
+      this.flushInterval = null;
+    }
+    
     // Track final page if we have one
     if (this.currentPage) {
       const timeOnPage = Date.now() - this.pageStartTime;
@@ -295,6 +353,9 @@ class SessionTracker {
     this.flushActivityQueue();
     this.flushSessionQueue();
 
+    // Clear localStorage
+    localStorage.removeItem('sprouter_session');
+
     console.log('SessionTracker: Stopped tracking');
   }
 
@@ -303,6 +364,48 @@ class SessionTracker {
     console.log('SessionTracker: Force flushing all data');
     await this.flushActivityQueue();
     await this.flushSessionQueue();
+  }
+
+  // Setup periodic data flushing
+  private setupPeriodicFlush() {
+    // Clear existing interval
+    if (this.flushInterval) {
+      clearInterval(this.flushInterval);
+    }
+    
+    // Flush data every 30 seconds
+    this.flushInterval = setInterval(() => {
+      if (this.isTracking) {
+        this.flushActivityQueue();
+        this.flushSessionQueue();
+      }
+    }, 30000);
+  }
+
+  // Send data using beacon API for guaranteed delivery
+  private sendBeacon() {
+    if (!this.isTracking || (!this.activityQueue.length && !this.sessionQueue.length)) {
+      return;
+    }
+
+    const data = {
+      activities: [...this.activityQueue],
+      sessions: [...this.sessionQueue]
+    };
+
+    try {
+      // Use sendBeacon for guaranteed delivery
+      const success = navigator.sendBeacon('/api/track-batch', JSON.stringify(data));
+      if (success) {
+        console.log('✅ SessionTracker: Data sent via beacon API');
+        this.activityQueue = [];
+        this.sessionQueue = [];
+      } else {
+        console.warn('⚠️ SessionTracker: Beacon API failed, data may be lost');
+      }
+    } catch (error) {
+      console.error('SessionTracker: Beacon API error:', error);
+    }
   }
 
   // Get current session info
