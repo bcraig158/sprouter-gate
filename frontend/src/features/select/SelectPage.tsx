@@ -88,10 +88,18 @@ export default function SelectPage() {
 
   const fetchState = async () => {
     try {
-      // Always use real API for production tracking
+      // Use the correct API endpoint
       const response = await api.get('/state');
-      setState(response.data);
+      console.log('State API response:', response.data);
+      
+      // The API returns { success: true, data: stateResponse }
+      if (response.data.success && response.data.data) {
+        setState(response.data.data);
+      } else {
+        throw new Error('Invalid response structure');
+      }
     } catch (err) {
+      console.error('State fetch error:', err);
       setError('Failed to load your current state');
     } finally {
       setIsLoading(false);

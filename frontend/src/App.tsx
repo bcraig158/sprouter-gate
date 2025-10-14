@@ -11,12 +11,45 @@ import StatusPage from './features/status/StatusPage';
 import AdminAnalyticsPage from './features/admin/AdminAnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import sessionTracker from './services/sessionTracking';
+import eventTracker from './services/eventTracking';
 
 function App() {
   // Initialize global session tracking
   React.useEffect(() => {
-    // Session tracker will auto-restore from localStorage if available
-    console.log('App initialized - session tracking ready');
+    // Check if user is already logged in and restore session
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    const sessionId = localStorage.getItem('sessionId');
+    
+    if (token && user && sessionId) {
+      try {
+        const userData = JSON.parse(user);
+        console.log('Restoring session for user:', userData);
+        
+        // Initialize session tracking
+        sessionTracker.initialize(
+          userData.household_id || userData.student_id,
+          userData.type === 'volunteer' ? 'volunteer' : 'student',
+          sessionId
+        );
+        
+        // Initialize event tracking
+        eventTracker.setUser(
+          userData.household_id || userData.student_id,
+          userData.type === 'volunteer' ? 'volunteer' : 'student'
+        );
+        
+        console.log('Session tracking restored successfully');
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+        // Clear invalid session data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('sessionId');
+      }
+    } else {
+      console.log('No existing session found');
+    }
   }, []);
 
   return (

@@ -36,32 +36,41 @@ class SessionTracker {
   // Restore session from localStorage
   private restoreSession() {
     try {
-      const stored = localStorage.getItem('sprouter_session');
-      if (stored) {
-        const sessionData = JSON.parse(stored);
+      // Check for our standard session storage keys
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      const sessionId = localStorage.getItem('sessionId');
+      
+      if (token && user && sessionId) {
+        const userData = JSON.parse(user);
         const now = Date.now();
         
         // Check if session is still valid (within timeout)
-        if (now - sessionData.timestamp < this.sessionTimeout) {
-          this.userId = sessionData.userId;
-          this.userType = sessionData.userType;
-          this.sessionId = sessionData.sessionId;
+        if (now - (userData.timestamp || 0) < this.sessionTimeout) {
+          this.userId = userData.household_id || userData.student_id;
+          this.userType = userData.type === 'volunteer' ? 'volunteer' : 'student';
+          this.sessionId = sessionId;
           this.isTracking = true;
           
           this.setupPageTracking();
           this.setupActivityTracking();
           this.setupPeriodicFlush();
           
-          console.log(`SessionTracker: Restored session for ${sessionData.userType} ${sessionData.userId}`);
+          console.log(`SessionTracker: Restored session for ${this.userType} ${this.userId}`);
         } else {
           // Session expired, clear it
-          localStorage.removeItem('sprouter_session');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('sessionId');
           console.log('SessionTracker: Session expired, cleared');
         }
       }
     } catch (error) {
       console.warn('SessionTracker: Failed to restore session:', error);
-      localStorage.removeItem('sprouter_session');
+      // Clear invalid session data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('sessionId');
     }
   }
 
@@ -72,13 +81,25 @@ class SessionTracker {
     this.sessionId = sessionId;
     this.isTracking = true;
     
-    // Store session info in localStorage for persistence
-    localStorage.setItem('sprouter_session', JSON.stringify({
-      userId,
-      userType,
-      sessionId,
+    // Store session info in localStorage for persistence (using standard keys)
+    const userData = {
+      household_id: userId,
+      student_id: userId,
+      type: userType,
       timestamp: Date.now()
-    }));
+    };
+    
+    // Update the user data in localStorage if it exists
+    const existingUser = localStorage.getItem('user');
+    if (existingUser) {
+      try {
+        const parsedUser = JSON.parse(existingUser);
+        const updatedUser = { ...parsedUser, ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (error) {
+        console.warn('Failed to update user data:', error);
+      }
+    }
     
     this.setupPageTracking();
     this.setupActivityTracking();
@@ -354,7 +375,9 @@ class SessionTracker {
     this.flushSessionQueue();
 
     // Clear localStorage
-    localStorage.removeItem('sprouter_session');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('sessionId');
 
     console.log('SessionTracker: Stopped tracking');
   }
