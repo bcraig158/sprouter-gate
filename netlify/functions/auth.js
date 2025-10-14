@@ -230,6 +230,9 @@ exports.handler = async (event) => {
       case 'login_volunteer': {
         const volunteer = await authenticateVolunteer(data.code, data.email);
         if (volunteer) {
+          // Check if this is the admin user
+          const isAdmin = volunteer.code === '339933' && volunteer.email === 'admin@maidu.com';
+          
           const session = trackSession('volunteers', volunteer.code, {
             email: volunteer.email,
             domain: data.domain,
@@ -237,7 +240,11 @@ exports.handler = async (event) => {
             ip: event.headers['x-forwarded-for'] || event.headers['client-ip']
           });
           
-          const token = generateToken({ code: volunteer.code, type: 'volunteer' }, session.id);
+          const token = generateToken({ 
+            code: volunteer.code, 
+            type: isAdmin ? 'admin' : 'volunteer',
+            role: isAdmin ? 'admin' : 'volunteer'
+          }, session.id);
           
           return {
             statusCode: 200,
@@ -247,7 +254,8 @@ exports.handler = async (event) => {
               user: {
                 code: volunteer.code,
                 email: volunteer.email,
-                type: 'volunteer'
+                type: isAdmin ? 'admin' : 'volunteer',
+                role: isAdmin ? 'admin' : 'volunteer'
               },
               sessionId: session.id,
               token
