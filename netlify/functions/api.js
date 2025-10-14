@@ -548,15 +548,8 @@ exports.handler = async (event, context) => {
           };
         }
       
-      // Check if admin using environment variables
-      const adminCode = process.env.ADMIN_CODE;
-      const adminEmail = process.env.ADMIN_EMAIL;
-      
-      if (!adminCode || !adminEmail) {
-        throw new Error('ADMIN_CODE and ADMIN_EMAIL environment variables are required');
-      }
-      
-      const isAdmin = volunteerCode === adminCode && volunteer.email.toLowerCase() === adminEmail.toLowerCase();
+      // Check if admin using hardcoded admin credentials from volunteer-codes.json
+      const isAdmin = volunteerCode === '339933' && volunteer.email.toLowerCase() === 'admin@maidu.com';
       const volunteerHouseholdId = isAdmin ? 'ADMIN' : `VOL_${volunteerCode}`;
       
       // Generate JWT token
