@@ -407,7 +407,14 @@ exports.handler = async (event, context) => {
     if (route === '/login' && httpMethod === 'POST') {
       try {
         console.log('🎓 Student login attempt');
-        const { studentId } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { studentId } = requestData;
         console.log(`🎓 Student ID: ${studentId}`);
       
         if (!studentId) {
@@ -503,7 +510,14 @@ exports.handler = async (event, context) => {
     if (route === '/volunteer-login' && httpMethod === 'POST') {
       try {
         console.log('👥 Volunteer login attempt');
-        const { volunteerCode, email } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { volunteerCode, email } = requestData;
         console.log(`👥 Code: ${volunteerCode}, Email: ${email}`);
       
         if (!volunteerCode || !email) {
@@ -613,7 +627,14 @@ exports.handler = async (event, context) => {
     
     // Track event interaction
     if (route === '/track-event' && httpMethod === 'POST') {
-      const { eventKey, eventType, userId, userType, metadata } = JSON.parse(body);
+      // Handle both parsed and unparsed body
+      let requestData;
+      if (typeof body === 'string') {
+        requestData = JSON.parse(body);
+      } else {
+        requestData = body;
+      }
+      const { eventKey, eventType, userId, userType, metadata } = requestData;
       
       const eventData = {
         event_key: eventKey,
@@ -639,7 +660,14 @@ exports.handler = async (event, context) => {
     // Track page view and session activity
     if (route === '/track-session' && httpMethod === 'POST') {
       console.log('📊 Session tracking request received:', body);
-      const sessionDataArray = JSON.parse(body);
+      // Handle both parsed and unparsed body
+      let requestData;
+      if (typeof body === 'string') {
+        requestData = JSON.parse(body);
+      } else {
+        requestData = body;
+      }
+      const sessionDataArray = requestData;
       
       // Handle both single session and array of sessions
       const sessions = Array.isArray(sessionDataArray) ? sessionDataArray : [sessionDataArray];
@@ -675,7 +703,14 @@ exports.handler = async (event, context) => {
     // Track user activity (clicks, scrolls, etc.)
     if (route === '/track-activity' && httpMethod === 'POST') {
       console.log('📊 Activity tracking request received:', body);
-      const activityDataArray = JSON.parse(body);
+      // Handle both parsed and unparsed body
+      let requestData;
+      if (typeof body === 'string') {
+        requestData = JSON.parse(body);
+      } else {
+        requestData = body;
+      }
+      const activityDataArray = requestData;
       
       // Handle both single activity and array of activities
       const activities = Array.isArray(activityDataArray) ? activityDataArray : [activityDataArray];
@@ -756,7 +791,14 @@ exports.handler = async (event, context) => {
     // New tracking endpoints for enhanced analytics
     if (route === '/track_activity' && httpMethod === 'POST') {
       try {
-        const { activities } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { activities } = requestData;
         console.log('📊 Enhanced activity tracking:', activities);
         
         // Store activities in session data
@@ -803,7 +845,14 @@ exports.handler = async (event, context) => {
     
     if (route === '/track_session' && httpMethod === 'POST') {
       try {
-        const { sessions: sessionData } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { sessions: sessionData } = requestData;
         console.log('📊 Enhanced session tracking:', sessionData);
         
         // Store session data
@@ -851,7 +900,14 @@ exports.handler = async (event, context) => {
     // Show selection tracking
     if (route === '/track_show_selection' && httpMethod === 'POST') {
       try {
-        const { show_id, show_name, user_id, user_type } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { show_id, show_name, user_id, user_type } = requestData;
         console.log('🎭 Tracking show selection:', { show_id, show_name, user_id, user_type });
         
         // Insert into show_selections table
@@ -906,7 +962,14 @@ exports.handler = async (event, context) => {
     // Purchase intent tracking
     if (route === '/track_purchase_intent' && httpMethod === 'POST') {
       try {
-        const { show_id, quantity, user_id, user_type } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { show_id, quantity, user_id, user_type } = requestData;
         console.log('💰 Tracking purchase intent:', { show_id, quantity, user_id, user_type });
         
         // Insert into purchase_intents table
@@ -963,7 +1026,14 @@ exports.handler = async (event, context) => {
     // Purchase completion tracking
     if (route === '/track_purchase_completed' && httpMethod === 'POST') {
       try {
-        const { show_id, quantity, total_cost, user_id, user_type } = JSON.parse(body);
+        // Handle both parsed and unparsed body
+        let requestData;
+        if (typeof body === 'string') {
+          requestData = JSON.parse(body);
+        } else {
+          requestData = body;
+        }
+        const { show_id, quantity, total_cost, user_id, user_type } = requestData;
         console.log('✅ Tracking purchase completion:', { show_id, quantity, total_cost, user_id, user_type });
         
         // Insert into purchases table
