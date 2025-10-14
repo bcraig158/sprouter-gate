@@ -1129,34 +1129,36 @@ exports.handler = async (event, context) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Get user's current state from secureStorage
-        const analyticsData = await secureStorage.getAnalytics();
-        const userLogins = analyticsData.userLogins || [];
-        const showSelections = analyticsData.showSelections || [];
-        const purchases = analyticsData.purchases || [];
+        // Get user's current state from secureStorage (with fallback)
+        let selections = [];
+        let userPurchases = [];
         
-        // Find user's most recent login
-        const user = userLogins
-          .filter(login => login.user_id === decoded.householdId)
-          .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))[0];
-        
-        if (!user) {
-          return {
-            statusCode: 404,
-            headers: corsHeaders,
-            body: JSON.stringify({ success: false, message: 'User not found' })
-          };
+        try {
+          const analyticsData = await secureStorage.getAnalytics();
+          const showSelections = analyticsData.showSelections || [];
+          const purchases = analyticsData.purchases || [];
+          
+          // Get user's show selections
+          selections = showSelections
+            .filter(selection => selection.user_id === decoded.householdId)
+            .sort((a, b) => new Date(b.selection_timestamp) - new Date(a.selection_timestamp));
+          
+          // Get user's purchases
+          userPurchases = purchases
+            .filter(purchase => purchase.user_id === decoded.householdId)
+            .sort((a, b) => new Date(b.purchase_timestamp) - new Date(a.purchase_timestamp));
+        } catch (error) {
+          console.log('No analytics data available yet, using empty arrays');
+          selections = [];
+          userPurchases = [];
         }
         
-        // Get user's show selections
-        const selections = showSelections
-          .filter(selection => selection.user_id === decoded.householdId)
-          .sort((a, b) => new Date(b.selection_timestamp) - new Date(a.selection_timestamp));
-        
-        // Get user's purchases
-        const userPurchases = purchases
-          .filter(purchase => purchase.user_id === decoded.householdId)
-          .sort((a, b) => new Date(b.purchase_timestamp) - new Date(a.purchase_timestamp));
+        // Create user object from JWT token data
+        const user = {
+          user_id: decoded.householdId,
+          user_type: decoded.isVolunteer ? 'volunteer' : 'student',
+          login_timestamp: new Date().toISOString()
+        };
         
         // Debug logging
         console.log('State endpoint debug:', {
