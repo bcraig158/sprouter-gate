@@ -4,10 +4,12 @@
   "description": "Sprouter Gate - Event Management System",
   "private": true,
   "scripts": {
-    "build": "npm run build:frontend && npm run build:functions",
+    "build": "npm run install:all && npm run build:frontend && npm run build:functions",
     "build:frontend": "npm --prefix frontend run build:production",
     "build:functions": "npm --prefix netlify/functions ci",
-    "install:all": "npm install && npm --prefix frontend install && npm --prefix netlify/functions install"
+    "install:all": "npm install && npm --prefix frontend install && npm --prefix netlify/functions install",
+    "prebuild": "echo 'Starting build process...'",
+    "postbuild": "echo 'Build completed successfully!'"
   },
   "engines": {
     "node": ">=18.0.0"

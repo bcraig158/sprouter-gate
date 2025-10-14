@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "cd frontend && npm install && npm run build:production && cd ../netlify/functions && npm install"
+  command = "npm run build"
   publish = "frontend/dist"
 
 [functions]
@@ -17,11 +17,21 @@
   VITE_APP_ENV = "production"
   VITE_APP_URL = "https://maidutickets.com"
   VITE_API_URL = "https://maidutickets.com"
+  # NPM Configuration - Optimized for your build
   NPM_CONFIG_LEGACY_PEER_DEPS = "true"
   NPM_CONFIG_ENGINE_STRICT = "false"
   NPM_CONFIG_AUDIT = "false"
   NPM_CONFIG_FUND = "false"
-  NPM_CONFIG_LOGLEVEL = "error"
+  NPM_CONFIG_LOGLEVEL = "warn"
+  NPM_CONFIG_PROGRESS = "false"
+  NPM_CONFIG_UPDATE_NOTIFIER = "false"
+  # Build optimizations
+  NPM_CONFIG_CACHE = "true"
+  NPM_CONFIG_PREFER_OFFLINE = "true"
+  # Analytics fallback settings
+  ANALYTICS_ENABLED = "true"
+  ANALYTICS_TIMEOUT = "5000"
+  ANALYTICS_RETRY_LIMIT = "3"
 
 # API redirects to Netlify Functions
 [[redirects]]
@@ -58,3 +68,42 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Build optimizations
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+# Headers for better performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

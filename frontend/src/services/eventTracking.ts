@@ -30,6 +30,10 @@ class EventTracker {
     }
 
     try {
+      // Use AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
       const response = await fetch('/api/track-event', {
         method: 'POST',
         headers: {
@@ -41,8 +45,11 @@ class EventTracker {
           userId: this.userId,
           userType: this.userType,
           metadata: event.metadata
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         this.trackedEvents.add(eventKey);
@@ -53,7 +60,11 @@ class EventTracker {
         return false;
       }
     } catch (error) {
-      console.error('Event tracking failed:', error);
+      if (error.name === 'AbortError') {
+        console.warn('Event tracking timeout, skipping:', event.eventType);
+      } else {
+        console.error('Event tracking failed:', error);
+      }
       // Don't throw - tracking failures should not affect app functionality
       return false;
     }

@@ -74,41 +74,55 @@ class SessionTracker {
     }
   }
 
-  // Initialize tracking for a user
+  // Initialize tracking for a user - WITH FALLBACK MECHANISM
   initialize(userId: string, userType: 'student' | 'volunteer', sessionId: string) {
-    this.userId = userId;
-    this.userType = userType;
-    this.sessionId = sessionId;
-    this.isTracking = true;
-    
-    // Store session info in localStorage for persistence (using standard keys)
-    const userData = {
-      household_id: userId,
-      student_id: userId,
-      type: userType,
-      timestamp: Date.now()
-    };
-    
-    // Update the user data in localStorage if it exists
-    const existingUser = localStorage.getItem('user');
-    if (existingUser) {
-      try {
-        const parsedUser = JSON.parse(existingUser);
-        const updatedUser = { ...parsedUser, ...userData };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      } catch (error) {
-        console.warn('Failed to update user data:', error);
+    try {
+      this.userId = userId;
+      this.userType = userType;
+      this.sessionId = sessionId;
+      this.isTracking = true;
+      
+      // Store session info in localStorage for persistence (using standard keys)
+      const userData = {
+        household_id: userId,
+        student_id: userId,
+        type: userType,
+        timestamp: Date.now()
+      };
+      
+      // Update the user data in localStorage if it exists
+      const existingUser = localStorage.getItem('user');
+      if (existingUser) {
+        try {
+          const parsedUser = JSON.parse(existingUser);
+          const updatedUser = { ...parsedUser, ...userData };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        } catch (error) {
+          console.warn('Failed to update user data:', error);
+        }
       }
+      
+      // Setup tracking with error handling
+      try {
+        this.setupPageTracking();
+        this.setupActivityTracking();
+        this.setupPeriodicFlush();
+        
+        // Immediately track the current page (non-blocking)
+        setTimeout(() => {
+          this.trackPageView(window.location.pathname);
+        }, 100);
+        
+        console.log(`SessionTracker: Initialized for ${userType} ${userId}`);
+      } catch (trackingError) {
+        console.warn('SessionTracker: Tracking setup failed, continuing without analytics:', trackingError);
+        // Don't throw - allow the app to continue without analytics
+      }
+    } catch (error) {
+      console.error('SessionTracker: Initialization failed, continuing without analytics:', error);
+      // Don't throw - allow the app to continue without analytics
+      this.isTracking = false;
     }
-    
-    this.setupPageTracking();
-    this.setupActivityTracking();
-    this.setupPeriodicFlush();
-    
-    // Immediately track the current page
-    this.trackPageView(window.location.pathname);
-    
-    console.log(`SessionTracker: Initialized for ${userType} ${userId}`);
   }
 
   // Track page views and time on page
@@ -284,7 +298,7 @@ class SessionTracker {
     }, 30000);
   }
 
-  // Flush activity queue
+  // Flush activity queue - NON-BLOCKING with better error handling
   private async flushActivityQueue() {
     if (this.activityQueue.length === 0) return;
 
@@ -293,33 +307,41 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending activities to backend:', activities);
+      
+      // Use AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch('/api/track-activity', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(activities)
+        body: JSON.stringify(activities),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         console.log(`✅ SessionTracker: Successfully flushed ${activities.length} activities`);
       } else {
         console.warn(`⚠️ SessionTracker: Failed to send activities, status: ${response.status}`);
-        // Re-queue failed activities (limit to prevent infinite loops)
-        if (this.activityQueue.length < 100) {
+        // Only re-queue if it's a server error (5xx), not client errors (4xx)
+        if (response.status >= 500 && this.activityQueue.length < 50) {
           this.activityQueue.unshift(...activities);
         }
       }
     } catch (error) {
       console.error('SessionTracker: Failed to flush activities:', error);
-      // Re-queue failed activities (limit to prevent infinite loops)
-      if (this.activityQueue.length < 100) {
+      // Only re-queue on network errors, not on timeouts or other issues
+      if (error instanceof Error && error.name !== 'AbortError' && this.activityQueue.length < 50) {
         this.activityQueue.unshift(...activities);
       }
     }
   }
 
-  // Flush session queue
+  // Flush session queue - NON-BLOCKING with better error handling
   private async flushSessionQueue() {
     if (this.sessionQueue.length === 0) return;
 
@@ -328,27 +350,35 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending sessions to backend:', sessions);
+      
+      // Use AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch('/api/track-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(sessions)
+        body: JSON.stringify(sessions),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         console.log(`✅ SessionTracker: Successfully flushed ${sessions.length} sessions`);
       } else {
         console.warn(`⚠️ SessionTracker: Failed to send sessions, status: ${response.status}`);
-        // Re-queue failed sessions (limit to prevent infinite loops)
-        if (this.sessionQueue.length < 50) {
+        // Only re-queue if it's a server error (5xx), not client errors (4xx)
+        if (response.status >= 500 && this.sessionQueue.length < 25) {
           this.sessionQueue.unshift(...sessions);
         }
       }
     } catch (error) {
       console.error('SessionTracker: Failed to flush sessions:', error);
-      // Re-queue failed sessions (limit to prevent infinite loops)
-      if (this.sessionQueue.length < 50) {
+      // Only re-queue on network errors, not on timeouts or other issues
+      if (error instanceof Error && error.name !== 'AbortError' && this.sessionQueue.length < 25) {
         this.sessionQueue.unshift(...sessions);
       }
     }
