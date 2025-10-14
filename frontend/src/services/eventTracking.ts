@@ -30,25 +30,31 @@ class EventTracker {
     }
 
     try {
-      const response = await fetch('/.netlify/functions/api', {
+      const response = await fetch('/api/track-event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...event,
+          eventKey: event.eventKey,
+          eventType: event.eventType,
           userId: this.userId,
-          userType: this.userType
+          userType: this.userType,
+          metadata: event.metadata
         })
       });
 
       if (response.ok) {
         this.trackedEvents.add(eventKey);
+        console.log('✅ Event tracked successfully:', event.eventType);
         return true;
+      } else {
+        console.warn('⚠️ Event tracking failed with status:', response.status);
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Event tracking failed:', error);
+      // Don't throw - tracking failures should not affect app functionality
       return false;
     }
   }

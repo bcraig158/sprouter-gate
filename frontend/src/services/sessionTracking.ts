@@ -220,28 +220,29 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending activities to backend:', activities);
-      const response = await fetch('/.netlify/functions/api', {
+      const response = await fetch('/api/track-activity', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'track_activity',
-          activities
-        })
+        body: JSON.stringify(activities)
       });
 
       if (response.ok) {
-        console.log(`SessionTracker: Successfully flushed ${activities.length} activities`);
+        console.log(`✅ SessionTracker: Successfully flushed ${activities.length} activities`);
       } else {
-        console.error('SessionTracker: Failed to send activities, status:', response.status);
-        // Re-queue failed activities
-        this.activityQueue.unshift(...activities);
+        console.warn(`⚠️ SessionTracker: Failed to send activities, status: ${response.status}`);
+        // Re-queue failed activities (limit to prevent infinite loops)
+        if (this.activityQueue.length < 100) {
+          this.activityQueue.unshift(...activities);
+        }
       }
     } catch (error) {
       console.error('SessionTracker: Failed to flush activities:', error);
-      // Re-queue failed activities
-      this.activityQueue.unshift(...activities);
+      // Re-queue failed activities (limit to prevent infinite loops)
+      if (this.activityQueue.length < 100) {
+        this.activityQueue.unshift(...activities);
+      }
     }
   }
 
@@ -254,28 +255,29 @@ class SessionTracker {
 
     try {
       console.log('SessionTracker: Sending sessions to backend:', sessions);
-      const response = await fetch('/.netlify/functions/api', {
+      const response = await fetch('/api/track-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'track_session',
-          sessions
-        })
+        body: JSON.stringify(sessions)
       });
 
       if (response.ok) {
-        console.log(`SessionTracker: Successfully flushed ${sessions.length} sessions`);
+        console.log(`✅ SessionTracker: Successfully flushed ${sessions.length} sessions`);
       } else {
-        console.error('SessionTracker: Failed to send sessions, status:', response.status);
-        // Re-queue failed sessions
-        this.sessionQueue.unshift(...sessions);
+        console.warn(`⚠️ SessionTracker: Failed to send sessions, status: ${response.status}`);
+        // Re-queue failed sessions (limit to prevent infinite loops)
+        if (this.sessionQueue.length < 50) {
+          this.sessionQueue.unshift(...sessions);
+        }
       }
     } catch (error) {
       console.error('SessionTracker: Failed to flush sessions:', error);
-      // Re-queue failed sessions
-      this.sessionQueue.unshift(...sessions);
+      // Re-queue failed sessions (limit to prevent infinite loops)
+      if (this.sessionQueue.length < 50) {
+        this.sessionQueue.unshift(...sessions);
+      }
     }
   }
 

@@ -535,8 +535,13 @@ exports.handler = async (event, context) => {
         }
       
       // Check if admin using environment variables
-      const adminCode = process.env.ADMIN_CODE || 'ADMIN2024';
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+      const adminCode = process.env.ADMIN_CODE;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      
+      if (!adminCode || !adminEmail) {
+        throw new Error('ADMIN_CODE and ADMIN_EMAIL environment variables are required');
+      }
+      
       const isAdmin = volunteerCode === adminCode && volunteer.email.toLowerCase() === adminEmail.toLowerCase();
       const volunteerHouseholdId = isAdmin ? 'ADMIN' : `VOL_${volunteerCode}`;
       
@@ -1038,7 +1043,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ 
         error: 'Route not found',
         requestedRoute: route,
-        availableRoutes: ['/health', '/analytics', '/export-data', '/track_activity', '/track_session', '/track_show_selection', '/track_purchase_intent', '/track_purchase_completed']
+        availableRoutes: ['/health', '/analytics', '/export-data', '/track-event', '/track_activity', '/track_session', '/track_show_selection', '/track_purchase_intent', '/track_purchase_completed']
       })
     };
     

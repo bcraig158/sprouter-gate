@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import jwtDecode from 'jwt-decode';
 import sessionTracker from '../services/sessionTracking';
+import { eventTracker } from '../services/eventTracking';
 import { authService } from '../services/api';
 
 interface User {
@@ -55,13 +56,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
           setUser(userData);
           
-          // Initialize session tracking for existing user
-          const sessionId = `session_${decoded.householdId}_${Date.now()}`;
-          sessionTracker.initialize(
-            decoded.householdId, 
-            decoded.isVolunteer ? 'volunteer' : 'student', 
-            sessionId
-          );
+          // Initialize session tracking for existing user (non-blocking)
+          try {
+            const sessionId = `session_${decoded.householdId}_${Date.now()}`;
+            sessionTracker.initialize(
+              decoded.householdId, 
+              decoded.isVolunteer ? 'volunteer' : 'student', 
+              sessionId
+            );
+            
+            // Initialize event tracking for existing user
+            eventTracker.setUser(
+              decoded.householdId,
+              decoded.isVolunteer ? 'volunteer' : 'student'
+            );
+          } catch (error) {
+            console.warn('Tracking initialization failed for existing user:', error);
+            // Don't let tracking errors affect login
+          }
         } else {
           localStorage.removeItem('token');
         }
@@ -88,13 +100,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Initialize session tracking for new login
-        sessionTracker.initialize(data.user.household_id, 'student', data.sessionId);
-        
-        // Force flush data immediately
-        setTimeout(() => {
-          sessionTracker.forceFlush();
-        }, 1000);
+        // Initialize session tracking for new login (non-blocking)
+        try {
+          sessionTracker.initialize(data.user.household_id, 'student', data.sessionId);
+          
+          // Initialize event tracking for new login
+          eventTracker.setUser(data.user.household_id, 'student');
+          
+          // Force flush data immediately (non-blocking)
+          setTimeout(() => {
+            sessionTracker.forceFlush().catch(err => 
+              console.warn('Session tracking flush failed:', err)
+            );
+          }, 1000);
+        } catch (error) {
+          console.warn('Tracking initialization failed:', error);
+          // Don't let tracking errors affect login
+        }
         
         return true;
       }
@@ -122,13 +144,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Initialize session tracking for volunteer login
-        sessionTracker.initialize(data.user.code, 'volunteer', data.sessionId);
-        
-        // Force flush data immediately
-        setTimeout(() => {
-          sessionTracker.forceFlush();
-        }, 1000);
+        // Initialize session tracking for volunteer login (non-blocking)
+        try {
+          sessionTracker.initialize(data.user.code, 'volunteer', data.sessionId);
+          
+          // Initialize event tracking for volunteer login
+          eventTracker.setUser(data.user.code, 'volunteer');
+          
+          // Force flush data immediately (non-blocking)
+          setTimeout(() => {
+            sessionTracker.forceFlush().catch(err => 
+              console.warn('Session tracking flush failed:', err)
+            );
+          }, 1000);
+        } catch (error) {
+          console.warn('Tracking initialization failed:', error);
+          // Don't let tracking errors affect login
+        }
         
         return true;
       }

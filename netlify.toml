@@ -35,6 +35,21 @@
   status = 200
 
 [[redirects]]
+  from = "/api/track-event"
+  to = "/.netlify/functions/api/track-event"
+  status = 200
+
+[[redirects]]
+  from = "/api/track-activity"
+  to = "/.netlify/functions/api/track-activity"
+  status = 200
+
+[[redirects]]
+  from = "/api/track-session"
+  to = "/.netlify/functions/api/track-session"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200

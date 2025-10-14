@@ -118,12 +118,17 @@ async function authenticateVolunteer(code, email) {
 // Admin authentication using environment variable
 async function authenticateAdmin(code) {
   try {
-    const adminCode = process.env.ADMIN_CODE || 'ADMIN2024';
+    const adminCode = process.env.ADMIN_CODE;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    
+    if (!adminCode || !adminEmail) {
+      throw new Error('ADMIN_CODE and ADMIN_EMAIL environment variables are required');
+    }
     
     if (code === adminCode) {
       return {
         code: adminCode,
-        email: process.env.ADMIN_EMAIL || 'admin@example.com',
+        email: adminEmail,
         name: 'System Administrator',
         role: 'admin',
         created_at: new Date().toISOString()
