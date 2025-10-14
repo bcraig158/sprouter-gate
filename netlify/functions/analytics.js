@@ -503,45 +503,42 @@ exports.handler = async (event) => {
       };
     }
 
-    // Get analytics from secureStorage
+    // Get analytics from secureStorage (primary source)
     const analyticsData = await secureStorage.getAnalytics();
+    console.log('Analytics - secureStorage data:', JSON.stringify(analyticsData, null, 2));
     
-    // Get database analytics (primary source)
-    const databaseAnalytics = await getDatabaseAnalytics();
-    
-    // Calculate session analytics from secureStorage data (fallback)
+    // Calculate analytics from secureStorage data
     const sessionAnalytics = calculateSessionAnalytics(analyticsData);
+    console.log('Analytics - session data:', JSON.stringify(sessionAnalytics, null, 2));
     
-    // Combine analytics - prioritize database data
+    // Use secureStorage data as primary source
     const combinedAnalytics = {
-      // Use database analytics as primary source
-      totalLogins: databaseAnalytics.totalUserLogins || sessionAnalytics.totalLogins,
+      // Use secureStorage analytics as primary source
+      totalLogins: sessionAnalytics.totalLogins,
       studentLogins: sessionAnalytics.studentLogins,
       volunteerLogins: sessionAnalytics.volunteerLogins,
       adminLogins: sessionAnalytics.adminLogins,
-      totalShowSelections: databaseAnalytics.totalShowSelections,
-      totalPurchases: databaseAnalytics.totalPurchases,
-      totalRevenue: databaseAnalytics.totalRevenue,
-      totalPurchaseIntents: databaseAnalytics.totalPurchaseIntents,
-      totalSprouterSuccesses: databaseAnalytics.totalSprouterSuccesses,
-      totalUserLogins: databaseAnalytics.totalUserLogins,
-      totalActivityEvents: databaseAnalytics.totalActivityEvents,
-      activeUsers: databaseAnalytics.activeUsers,
-      activeUsersList: databaseAnalytics.activeUsersList,
+      totalShowSelections: sessionAnalytics.totalShowSelections,
+      totalPurchases: sessionAnalytics.totalPurchases,
+      totalRevenue: sessionAnalytics.totalRevenue,
+      totalPurchaseIntents: sessionAnalytics.totalPurchaseIntents,
+      totalSprouterSuccesses: sessionAnalytics.totalSprouterSuccesses,
+      totalUserLogins: sessionAnalytics.totalLogins,
+      totalActivityEvents: sessionAnalytics.totalActivityEvents,
+      activeUsers: sessionAnalytics.activeUsers,
+      activeUsersList: sessionAnalytics.activeUsersList,
       // Show breakdown
-      showBreakdown: databaseAnalytics.showBreakdown,
+      showBreakdown: sessionAnalytics.showBreakdown,
       // Top users
-      topUsers: databaseAnalytics.topUsers,
+      topUsers: sessionAnalytics.topUsers,
       // Recent activity
-      recentActivity: databaseAnalytics.recentActivity,
-      // Session analytics (from file storage as fallback)
+      recentActivity: sessionAnalytics.recentActivity,
+      // Session analytics
       byDomain: sessionAnalytics.byDomain,
       byDate: sessionAnalytics.byDate,
       hourlyDistribution: sessionAnalytics.hourlyDistribution,
       userAgentStats: sessionAnalytics.userAgentStats,
       topHouseholds: sessionAnalytics.topHouseholds,
-      // Database summary
-      database: databaseAnalytics,
       // Raw data from secureStorage (for debugging)
       rawData: {
         userLogins: analyticsData.userLogins || [],
@@ -552,7 +549,7 @@ exports.handler = async (event) => {
       },
       generatedAt: new Date().toISOString(),
       timeRange: '30 days',
-      dataSource: 'database_primary'
+      dataSource: 'secureStorage'
     };
     
     return {

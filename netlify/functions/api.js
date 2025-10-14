@@ -392,36 +392,13 @@ exports.handler = async (event, context) => {
     // Debug data endpoint (for testing data collection)
     if (route === '/debug-data' && httpMethod === 'GET') {
       try {
-        // Get counts from database
-        const userLoginsCount = await new Promise((resolve) => {
-          db.get('SELECT COUNT(*) as count FROM user_logins', (err, row) => {
-            resolve(err ? 0 : row.count);
-          });
-        });
-        
-        const activitiesCount = await new Promise((resolve) => {
-          db.get('SELECT COUNT(*) as count FROM user_activity_timeline', (err, row) => {
-            resolve(err ? 0 : row.count);
-          });
-        });
-        
-        const sessionsCount = await new Promise((resolve) => {
-          db.get('SELECT COUNT(*) as count FROM sessions', (err, row) => {
-            resolve(err ? 0 : row.count);
-          });
-        });
-        
-        const recentLogins = await new Promise((resolve) => {
-          db.all('SELECT user_id, user_type, login_timestamp FROM user_logins ORDER BY login_timestamp DESC LIMIT 5', (err, rows) => {
-            resolve(err ? [] : rows);
-          });
-        });
-        
-        const recentActivities = await new Promise((resolve) => {
-          db.all('SELECT user_id, activity_type, timestamp FROM user_activity_timeline ORDER BY timestamp DESC LIMIT 5', (err, rows) => {
-            resolve(err ? [] : rows);
-          });
-        });
+        // Get counts from secureStorage
+        const analyticsData = await secureStorage.getAnalytics();
+        const userLoginsCount = analyticsData.userLogins?.length || 0;
+        const activitiesCount = analyticsData.activities?.length || 0;
+        const sessionsCount = analyticsData.sessions?.length || 0;
+        const recentLogins = analyticsData.userLogins?.slice(-5) || [];
+        const recentActivities = analyticsData.activities?.slice(-5) || [];
         
         return {
           statusCode: 200,
@@ -696,28 +673,13 @@ exports.handler = async (event, context) => {
               user_agent: headers['user-agent'] || ''
             };
             
-            // Store activity data in SQLite database
-            db.run(`
-              INSERT INTO user_activity_timeline (
-                user_id, user_type, activity_type, page, metadata, 
-                timestamp, ip_address, user_agent
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-              enhancedActivityData.user_id,
-              enhancedActivityData.user_type,
-              enhancedActivityData.activity_type,
-              enhancedActivityData.page,
-              JSON.stringify(enhancedActivityData.metadata),
-              enhancedActivityData.timestamp,
-              enhancedActivityData.ip_address,
-              enhancedActivityData.user_agent
-            ], function(err) {
-              if (err) {
-                console.error('❌ Batch activity database insert error:', err);
-              } else {
-                activitiesTracked++;
-              }
-            });
+            // Store activity data in secureStorage
+            try {
+              await secureStorage.storeActivity(enhancedActivityData);
+              activitiesTracked++;
+            } catch (err) {
+              console.error('❌ Batch activity secureStorage error:', err);
+            }
           }
         }
         
@@ -739,30 +701,13 @@ exports.handler = async (event, context) => {
               domain: headers.host || 'unknown'
             };
             
-            // Store session data in SQLite database
-            db.run(`
-              INSERT INTO sessions (
-                user_id, user_type, session_id, page, time_on_page, 
-                referrer, timestamp, ip_address, user_agent, domain
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-              enhancedSessionData.user_id,
-              enhancedSessionData.user_type,
-              enhancedSessionData.session_id,
-              enhancedSessionData.page,
-              enhancedSessionData.time_on_page,
-              enhancedSessionData.referrer,
-              enhancedSessionData.timestamp,
-              enhancedSessionData.ip_address,
-              enhancedSessionData.user_agent,
-              enhancedSessionData.domain
-            ], function(err) {
-              if (err) {
-                console.error('❌ Batch session database insert error:', err);
-              } else {
-                sessionsTracked++;
-              }
-            });
+            // Store session data in secureStorage
+            try {
+              await secureStorage.storeSession(enhancedSessionData);
+              sessionsTracked++;
+            } catch (err) {
+              console.error('❌ Batch session secureStorage error:', err);
+            }
           }
         }
         
@@ -904,28 +849,13 @@ exports.handler = async (event, context) => {
             user_agent: headers['user-agent'] || ''
           };
           
-          // Store activity data in SQLite database
-          db.run(`
-            INSERT INTO user_activity_timeline (
-              user_id, user_type, activity_type, page, metadata, 
-              timestamp, ip_address, user_agent
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            enhancedActivityData.user_id,
-            enhancedActivityData.user_type,
-            enhancedActivityData.activity_type,
-            enhancedActivityData.page,
-            JSON.stringify(enhancedActivityData.metadata),
-            enhancedActivityData.timestamp,
-            enhancedActivityData.ip_address,
-            enhancedActivityData.user_agent
-          ], function(err) {
-            if (err) {
-              console.error('❌ Activity database insert error:', err);
-            } else {
-              console.log('✅ Activity stored in database:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
-            }
-          });
+          // Store activity data in secureStorage
+          try {
+            await secureStorage.storeActivity(enhancedActivityData);
+            console.log('✅ Activity stored in secureStorage:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
+          } catch (err) {
+            console.error('❌ Activity secureStorage error:', err);
+          }
         }
         
         return {
@@ -973,30 +903,13 @@ exports.handler = async (event, context) => {
             domain: headers.host || 'unknown'
           };
           
-          // Store session data in SQLite database
-          db.run(`
-            INSERT INTO sessions (
-              user_id, user_type, session_id, page, time_on_page, 
-              referrer, timestamp, ip_address, user_agent, domain
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            enhancedSessionData.user_id,
-            enhancedSessionData.user_type,
-            enhancedSessionData.session_id,
-            enhancedSessionData.page,
-            enhancedSessionData.time_on_page,
-            enhancedSessionData.referrer,
-            enhancedSessionData.timestamp,
-            enhancedSessionData.ip_address,
-            enhancedSessionData.user_agent,
-            enhancedSessionData.domain
-          ], function(err) {
-            if (err) {
-              console.error('❌ Session database insert error:', err);
-            } else {
-              console.log('✅ Session stored in database:', enhancedSessionData.user_id, enhancedSessionData.page);
-            }
-          });
+          // Store session data in secureStorage
+          try {
+            await secureStorage.storeSession(enhancedSessionData);
+            console.log('✅ Session stored in secureStorage:', enhancedSessionData.user_id, enhancedSessionData.page);
+          } catch (err) {
+            console.error('❌ Session secureStorage error:', err);
+          }
         }
         
         return {
@@ -1027,39 +940,33 @@ exports.handler = async (event, context) => {
         const { show_id, show_name, user_id, user_type } = requestData;
         console.log('🎭 Tracking show selection:', { show_id, show_name, user_id, user_type });
         
-        // Insert into show_selections table
-        db.run(`
-          INSERT INTO show_selections (user_id, user_type, show_id, show_date, show_time, show_datetime, tickets_requested, selection_timestamp, session_id, ip_address, user_agent)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          show_id, 
-          new Date().toISOString().split('T')[0], // show_date
-          new Date().toTimeString().split(' ')[0], // show_time
-          new Date().toISOString(), // show_datetime
-          1, // tickets_requested (default)
-          new Date().toISOString(), // selection_timestamp
-          'TRACKED_SESSION', // session_id
-          '127.0.0.1', // ip_address
-          'Analytics-Tracker' // user_agent
-        ]);
-        
-        // Insert into user_activity_timeline
-        db.run(`
-          INSERT INTO user_activity_timeline (user_id, user_type, activity_type, activity_details, show_id, session_id, ip_address, user_agent, activity_timestamp)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          'show_selection', 
-          `Selected show: ${show_name}`, 
+        // Store show selection in secureStorage
+        await secureStorage.storeShowSelection({
+          user_id,
+          user_type,
           show_id,
-          'TRACKED_SESSION',
-          '127.0.0.1',
-          'Analytics-Tracker',
-          new Date().toISOString()
-        ]);
+          show_date: new Date().toISOString().split('T')[0],
+          show_time: new Date().toTimeString().split(' ')[0],
+          show_datetime: new Date().toISOString(),
+          tickets_requested: 1,
+          selection_timestamp: new Date().toISOString(),
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker'
+        });
+        
+        // Store activity in secureStorage
+        await secureStorage.storeActivity({
+          user_id,
+          user_type,
+          activity_type: 'show_selection',
+          activity_details: `Selected show: ${show_name}`,
+          show_id,
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker',
+          activity_timestamp: new Date().toISOString()
+        });
         
         return {
           statusCode: 200,
@@ -1089,41 +996,35 @@ exports.handler = async (event, context) => {
         const { show_id, quantity, user_id, user_type } = requestData;
         console.log('💰 Tracking purchase intent:', { show_id, quantity, user_id, user_type });
         
-        // Insert into purchase_intents table
-        db.run(`
-          INSERT INTO purchase_intents (user_id, user_type, show_id, show_date, show_time, show_datetime, tickets_requested, intent_id, intent_timestamp, session_id, ip_address, user_agent, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          show_id, 
-          new Date().toISOString().split('T')[0], // show_date
-          new Date().toTimeString().split(' ')[0], // show_time
-          new Date().toISOString(), // show_datetime
-          quantity, // tickets_requested
-          `INTENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // intent_id
-          new Date().toISOString(), // intent_timestamp
-          'TRACKED_SESSION', // session_id
-          '127.0.0.1', // ip_address
-          'Analytics-Tracker', // user_agent
-          'active' // status
-        ]);
-        
-        // Insert into user_activity_timeline
-        db.run(`
-          INSERT INTO user_activity_timeline (user_id, user_type, activity_type, activity_details, show_id, session_id, ip_address, user_agent, activity_timestamp)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          'purchase_intent', 
-          `Intent to purchase ${quantity} tickets for ${show_id}`, 
+        // Store purchase intent in secureStorage
+        await secureStorage.storePurchaseIntent({
+          user_id,
+          user_type,
           show_id,
-          'TRACKED_SESSION',
-          '127.0.0.1',
-          'Analytics-Tracker',
-          new Date().toISOString()
-        ]);
+          show_date: new Date().toISOString().split('T')[0],
+          show_time: new Date().toTimeString().split(' ')[0],
+          show_datetime: new Date().toISOString(),
+          tickets_requested: quantity,
+          intent_id: `INTENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          intent_timestamp: new Date().toISOString(),
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker',
+          status: 'active'
+        });
+        
+        // Store activity in secureStorage
+        await secureStorage.storeActivity({
+          user_id,
+          user_type,
+          activity_type: 'purchase_intent',
+          activity_details: `Intent to purchase ${quantity} tickets for ${show_id}`,
+          show_id,
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker',
+          activity_timestamp: new Date().toISOString()
+        });
         
         return {
           statusCode: 200,
@@ -1153,61 +1054,49 @@ exports.handler = async (event, context) => {
         const { show_id, quantity, total_cost, user_id, user_type } = requestData;
         console.log('✅ Tracking purchase completion:', { show_id, quantity, total_cost, user_id, user_type });
         
-        // Insert into purchases table
-        db.run(`
-          INSERT INTO purchases (user_id, user_type, show_id, show_date, show_time, show_datetime, tickets_purchased, total_cost, payment_status, transaction_id, purchase_timestamp, session_id, ip_address, user_agent)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          show_id, 
-          new Date().toISOString().split('T')[0], // show_date
-          new Date().toTimeString().split(' ')[0], // show_time
-          new Date().toISOString(), // show_datetime
-          quantity, // tickets_purchased
-          total_cost, // total_cost
-          'completed', // payment_status
-          `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // transaction_id
-          new Date().toISOString(), // purchase_timestamp
-          'TRACKED_SESSION', // session_id
-          '127.0.0.1', // ip_address
-          'Analytics-Tracker' // user_agent
-        ]);
-        
-        // Insert into sprouter_success_visits table
-        db.run(`
-          INSERT INTO sprouter_success_visits (user_id, user_type, show_id, show_date, show_time, show_datetime, sprouter_transaction_id, success_timestamp, session_id, ip_address, user_agent, verification_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          show_id, 
-          new Date().toISOString().split('T')[0], // show_date
-          new Date().toTimeString().split(' ')[0], // show_time
-          new Date().toISOString(), // show_datetime
-          `SPROUTER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // sprouter_transaction_id
-          new Date().toISOString(), // success_timestamp
-          'TRACKED_SESSION', // session_id
-          '127.0.0.1', // ip_address
-          'Analytics-Tracker', // user_agent
-          'verified' // verification_status
-        ]);
-        
-        // Insert into user_activity_timeline
-        db.run(`
-          INSERT INTO user_activity_timeline (user_id, user_type, activity_type, activity_details, show_id, session_id, ip_address, user_agent, activity_timestamp)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          user_id, 
-          user_type, 
-          'purchase_completed', 
-          `Completed purchase of ${quantity} tickets for ${show_id} - $${total_cost}`, 
+        // Store purchase completion in secureStorage
+        await secureStorage.storePurchase({
+          user_id,
+          user_type,
           show_id,
-          'TRACKED_SESSION',
-          '127.0.0.1',
-          'Analytics-Tracker',
-          new Date().toISOString()
-        ]);
+          show_date: new Date().toISOString().split('T')[0],
+          show_time: new Date().toTimeString().split(' ')[0],
+          show_datetime: new Date().toISOString(),
+          tickets_purchased: quantity,
+          total_cost: total_cost,
+          payment_status: 'completed',
+          transaction_id: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          purchase_timestamp: new Date().toISOString(),
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker'
+        });
+        
+        // Store sprouter success in secureStorage
+        await secureStorage.storeActivity({
+          user_id,
+          user_type,
+          activity_type: 'sprouter_success',
+          activity_details: `Sprouter transaction completed: SPROUTER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          show_id,
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker',
+          activity_timestamp: new Date().toISOString()
+        });
+        
+        // Store activity
+        await secureStorage.storeActivity({
+          user_id,
+          user_type,
+          activity_type: 'purchase_completed',
+          activity_details: `Completed purchase of ${quantity} tickets for ${show_id} - $${total_cost}`,
+          show_id,
+          session_id: 'TRACKED_SESSION',
+          ip_address: '127.0.0.1',
+          user_agent: 'Analytics-Tracker',
+          activity_timestamp: new Date().toISOString()
+        });
         
         return {
           statusCode: 200,
@@ -1240,24 +1129,16 @@ exports.handler = async (event, context) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Get user's current state from database - with error handling
-        let user = null;
-        try {
-          const userStmt = db.prepare(`
-            SELECT * FROM user_logins 
-            WHERE user_id = ? 
-            ORDER BY login_timestamp DESC 
-            LIMIT 1
-          `);
-          user = userStmt.get(decoded.householdId);
-        } catch (error) {
-          console.error('Error fetching user:', error);
-          return {
-            statusCode: 500,
-            headers: corsHeaders,
-            body: JSON.stringify({ success: false, error: 'Database error fetching user' })
-          };
-        }
+        // Get user's current state from secureStorage
+        const analyticsData = await secureStorage.getAnalytics();
+        const userLogins = analyticsData.userLogins || [];
+        const showSelections = analyticsData.showSelections || [];
+        const purchases = analyticsData.purchases || [];
+        
+        // Find user's most recent login
+        const user = userLogins
+          .filter(login => login.user_id === decoded.householdId)
+          .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))[0];
         
         if (!user) {
           return {
@@ -1267,35 +1148,15 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Get user's show selections - with proper error handling
-        let selections = [];
-        try {
-          const selectionsStmt = db.prepare(`
-            SELECT * FROM show_selections 
-            WHERE user_id = ? 
-            ORDER BY selection_timestamp DESC
-          `);
-          const selectionsResult = selectionsStmt.all(decoded.householdId);
-          selections = Array.isArray(selectionsResult) ? selectionsResult : [];
-        } catch (error) {
-          console.error('Error fetching selections:', error);
-          selections = [];
-        }
+        // Get user's show selections
+        const selections = showSelections
+          .filter(selection => selection.user_id === decoded.householdId)
+          .sort((a, b) => new Date(b.selection_timestamp) - new Date(a.selection_timestamp));
         
-        // Get user's purchases - with proper error handling
-        let purchases = [];
-        try {
-          const purchasesStmt = db.prepare(`
-            SELECT * FROM purchases 
-            WHERE user_id = ? 
-            ORDER BY purchase_timestamp DESC
-          `);
-          const purchasesResult = purchasesStmt.all(decoded.householdId);
-          purchases = Array.isArray(purchasesResult) ? purchasesResult : [];
-        } catch (error) {
-          console.error('Error fetching purchases:', error);
-          purchases = [];
-        }
+        // Get user's purchases
+        const userPurchases = purchases
+          .filter(purchase => purchase.user_id === decoded.householdId)
+          .sort((a, b) => new Date(b.purchase_timestamp) - new Date(a.purchase_timestamp));
         
         // Debug logging
         console.log('State endpoint debug:', {
@@ -1303,9 +1164,9 @@ exports.handler = async (event, context) => {
           selectionsType: typeof selections,
           selectionsIsArray: Array.isArray(selections),
           selectionsLength: selections ? selections.length : 'null/undefined',
-          purchasesType: typeof purchases,
-          purchasesIsArray: Array.isArray(purchases),
-          purchasesLength: purchases ? purchases.length : 'null/undefined'
+          purchasesType: typeof userPurchases,
+          purchasesIsArray: Array.isArray(userPurchases),
+          purchasesLength: userPurchases ? userPurchases.length : 'null/undefined'
         });
         
         // Determine current phase based on selections and purchases
@@ -1313,7 +1174,7 @@ exports.handler = async (event, context) => {
         if (selections && selections.length > 0) {
           currentPhase = 'selected';
         }
-        if (purchases && purchases.length > 0) {
+        if (userPurchases && userPurchases.length > 0) {
           currentPhase = 'purchased';
         }
         
@@ -1416,12 +1277,7 @@ exports.handler = async (event, context) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Store selection in database
-        const stmt = db.prepare(`
-          INSERT INTO show_selections (user_id, user_type, show_id, show_name, show_date, show_time, show_datetime, tickets_requested, selection_timestamp, session_id, ip_address, user_agent)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        
+        // Store selection in secureStorage
         const showDate = eventKey.includes('thu') ? '2025-10-30' : '2025-10-28';
         const showTime = eventKey.includes('630') ? '18:30' : '17:30';
         const showDatetime = `${showDate} ${showTime}:00`;
@@ -1429,20 +1285,20 @@ exports.handler = async (event, context) => {
           (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
           (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
         
-        stmt.run([
-          decoded.householdId,
-          decoded.isVolunteer ? 'volunteer' : 'student',
-          eventKey,
-          showName,
-          showDate,
-          showTime,
-          showDatetime,
-          ticketsRequested,
-          new Date().toISOString(),
-          'session_' + decoded.householdId + '_' + Date.now(),
-          headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-          headers['user-agent'] || ''
-        ]);
+        await secureStorage.storeShowSelection({
+          user_id: decoded.householdId,
+          user_type: decoded.isVolunteer ? 'volunteer' : 'student',
+          show_id: eventKey,
+          show_name: showName,
+          show_date: showDate,
+          show_time: showTime,
+          show_datetime: showDatetime,
+          tickets_requested: ticketsRequested,
+          selection_timestamp: new Date().toISOString(),
+          session_id: 'session_' + decoded.householdId + '_' + Date.now(),
+          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          user_agent: headers['user-agent'] || ''
+        });
         
         return {
           statusCode: 200,
@@ -1487,12 +1343,7 @@ exports.handler = async (event, context) => {
         // Create purchase intent
         const intentId = `intent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        // Store intent in database
-        const stmt = db.prepare(`
-          INSERT INTO purchase_intents (user_id, user_type, show_id, show_name, show_date, show_time, show_datetime, tickets_requested, intent_timestamp, session_id, ip_address, user_agent, intent_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        
+        // Store intent in secureStorage
         const showDate = eventKey.includes('thu') ? '2025-10-30' : '2025-10-28';
         const showTime = eventKey.includes('630') ? '18:30' : '17:30';
         const showDatetime = `${showDate} ${showTime}:00`;
@@ -1500,21 +1351,21 @@ exports.handler = async (event, context) => {
           (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
           (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
         
-        stmt.run([
-          decoded.householdId,
-          decoded.isVolunteer ? 'volunteer' : 'student',
-          eventKey,
-          showName,
-          showDate,
-          showTime,
-          showDatetime,
-          ticketsRequested,
-          new Date().toISOString(),
-          'session_' + decoded.householdId + '_' + Date.now(),
-          headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-          headers['user-agent'] || '',
-          intentId
-        ]);
+        await secureStorage.storePurchaseIntent({
+          user_id: decoded.householdId,
+          user_type: decoded.isVolunteer ? 'volunteer' : 'student',
+          show_id: eventKey,
+          show_name: showName,
+          show_date: showDate,
+          show_time: showTime,
+          show_datetime: showDatetime,
+          tickets_requested: ticketsRequested,
+          intent_timestamp: new Date().toISOString(),
+          session_id: 'session_' + decoded.householdId + '_' + Date.now(),
+          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+          user_agent: headers['user-agent'] || '',
+          intent_id: intentId
+        });
         
         // Generate Sprouter URL (mock for now)
         const sprouterUrls = {
@@ -1563,13 +1414,12 @@ exports.handler = async (event, context) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Get user's purchases
-        const stmt = db.prepare(`
-          SELECT * FROM purchases 
-          WHERE user_id = ? 
-          ORDER BY purchase_timestamp DESC
-        `);
-        const purchases = stmt.all(decoded.householdId);
+        // Get user's purchases from secureStorage
+        const analyticsData = await secureStorage.getAnalytics();
+        const allPurchases = analyticsData.purchases || [];
+        const purchases = allPurchases
+          .filter(purchase => purchase.user_id === decoded.householdId)
+          .sort((a, b) => new Date(b.purchase_timestamp) - new Date(a.purchase_timestamp));
         
         // Format purchases for frontend
         const formattedPurchases = purchases.map(purchase => ({

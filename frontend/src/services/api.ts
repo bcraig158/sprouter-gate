@@ -83,7 +83,7 @@ export const authService = {
 // Analytics service
 export const analyticsService = {
   getAnalytics: async (token: string) => {
-    const response = await api.get('/.netlify/functions/analytics', {
+    const response = await api.get('/analytics', {
       headers: {
         Authorization: `Bearer ${token}`
       }

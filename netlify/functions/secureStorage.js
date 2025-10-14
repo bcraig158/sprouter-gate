@@ -354,6 +354,72 @@ class SecureStorage {
     }
   }
 
+  // Store show selection data
+  async storeShowSelection(selectionData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.showSelections) data.showSelections = [];
+      
+      const selection = {
+        ...selectionData,
+        stored_at: new Date().toISOString()
+      };
+      
+      data.showSelections.push(selection);
+      await this.saveData(data);
+      console.log(`✅ Show selection stored: ${selectionData.show_id}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing show selection:', error);
+      return false;
+    }
+  }
+
+  // Store purchase intent data
+  async storePurchaseIntent(intentData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.purchaseIntents) data.purchaseIntents = [];
+      
+      const intent = {
+        ...intentData,
+        stored_at: new Date().toISOString()
+      };
+      
+      data.purchaseIntents.push(intent);
+      await this.saveData(data);
+      console.log(`✅ Purchase intent stored: ${intentData.show_id}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing purchase intent:', error);
+      return false;
+    }
+  }
+
+  // Store purchase completion data
+  async storePurchase(purchaseData) {
+    try {
+      const data = await this.loadData();
+      
+      if (!data.purchases) data.purchases = [];
+      
+      const purchase = {
+        ...purchaseData,
+        stored_at: new Date().toISOString()
+      };
+      
+      data.purchases.push(purchase);
+      await this.saveData(data);
+      console.log(`✅ Purchase stored: ${purchaseData.show_id}`);
+      return true;
+    } catch (error) {
+      console.error('Error storing purchase:', error);
+      return false;
+    }
+  }
+
   // Get authentication session by ID
   async getAuthSession(sessionId) {
     try {
