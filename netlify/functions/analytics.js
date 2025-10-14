@@ -168,6 +168,9 @@ function calculateSessionAnalytics(analyticsData) {
     totalShowSelections: recentSelections.length,
     totalPurchases: recentPurchases.length,
     totalRevenue: recentPurchases.reduce((sum, p) => sum + (parseFloat(p.metadata?.total_cost) || 0), 0),
+    totalPurchaseIntents: activities.filter(a => a.activity_type === 'purchase_intent').length,
+    totalSprouterSuccesses: activities.filter(a => a.activity_type === 'sprouter_success').length,
+    totalActivityEvents: activities.length,
     activeUsers: new Set(recentLogins.map(s => s.user_id)).size,
     activeStudentUsers: new Set(recentLogins.filter(l => l.user_type === 'student').map(s => s.user_id)).size,
     activeVolunteerUsers: new Set(recentLogins.filter(l => l.user_type === 'volunteer').map(s => s.user_id)).size,
@@ -181,10 +184,16 @@ function calculateSessionAnalytics(analyticsData) {
         login_timestamp: session.login_timestamp,
         time_ago: Math.floor((Date.now() - new Date(session.login_timestamp).getTime()) / 1000 / 60) // minutes ago
       })),
-    showBreakdown: {},
-    recentActivity: recentLogins.slice(0, 10),
+    showBreakdown: {
+      'tue-530': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+      'tue-630': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+      'thu-530': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 },
+      'thu-630': { selections: 0, purchases: 0, revenue: 0, conversion_rate: 0 }
+    },
+    recentActivity: activities.slice(0, 10),
     topUsers: [],
     limitViolations: [],
+    fraud_detection: null,
     timeframe: '30 days',
     byDomain: {
       maidutickets: recentLogins.filter(l => l.domain?.includes('maidutickets')).length,
@@ -192,14 +201,14 @@ function calculateSessionAnalytics(analyticsData) {
       localhost: recentLogins.filter(l => l.domain?.includes('localhost')).length
     },
     byDate: {},
+    hourlyDistribution: {},
+    userAgentStats: {},
+    topHouseholds: {},
     uniqueStudents: new Set(recentLogins.filter(l => l.user_type === 'student').map(s => s.user_id)).size,
     uniqueVolunteers: new Set(recentLogins.filter(l => l.user_type === 'volunteer').map(s => s.user_id)).size,
     recentSessions: recentLogins
       .sort((a, b) => new Date(b.login_timestamp) - new Date(a.login_timestamp))
-      .slice(0, 50),
-    hourlyDistribution: {},
-    userAgentStats: {},
-    topHouseholds: {}
+      .slice(0, 50)
   };
 
   // Count by date
@@ -506,6 +515,9 @@ exports.handler = async (event) => {
     // Get analytics from secureStorage (primary source)
     const analyticsData = await secureStorage.getAnalytics();
     console.log('Analytics - secureStorage data:', JSON.stringify(analyticsData, null, 2));
+    console.log('Analytics - userLogins count:', analyticsData.userLogins?.length || 0);
+    console.log('Analytics - showSelections count:', analyticsData.showSelections?.length || 0);
+    console.log('Analytics - purchases count:', analyticsData.purchases?.length || 0);
     
     // Calculate analytics from secureStorage data
     const sessionAnalytics = calculateSessionAnalytics(analyticsData);
@@ -521,11 +533,13 @@ exports.handler = async (event) => {
       totalShowSelections: sessionAnalytics.totalShowSelections,
       totalPurchases: sessionAnalytics.totalPurchases,
       totalRevenue: sessionAnalytics.totalRevenue,
-      totalPurchaseIntents: sessionAnalytics.totalPurchaseIntents,
-      totalSprouterSuccesses: sessionAnalytics.totalSprouterSuccesses,
+      totalPurchaseIntents: sessionAnalytics.totalPurchaseIntents || 0,
+      totalSprouterSuccesses: sessionAnalytics.totalSprouterSuccesses || 0,
       totalUserLogins: sessionAnalytics.totalLogins,
-      totalActivityEvents: sessionAnalytics.totalActivityEvents,
+      totalActivityEvents: sessionAnalytics.totalActivityEvents || 0,
       activeUsers: sessionAnalytics.activeUsers,
+      activeStudentUsers: sessionAnalytics.activeStudentUsers,
+      activeVolunteerUsers: sessionAnalytics.activeVolunteerUsers,
       activeUsersList: sessionAnalytics.activeUsersList,
       // Show breakdown
       showBreakdown: sessionAnalytics.showBreakdown,
@@ -533,6 +547,12 @@ exports.handler = async (event) => {
       topUsers: sessionAnalytics.topUsers,
       // Recent activity
       recentActivity: sessionAnalytics.recentActivity,
+      // Limit violations
+      limitViolations: sessionAnalytics.limitViolations || [],
+      // Enhanced analytics
+      enhancedAnalytics: analyticsData.enhancedAnalytics || null,
+      // Fraud detection
+      fraud_detection: sessionAnalytics.fraud_detection || null,
       // Session analytics
       byDomain: sessionAnalytics.byDomain,
       byDate: sessionAnalytics.byDate,
