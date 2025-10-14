@@ -558,7 +558,8 @@ exports.handler = async (event, context) => {
           householdId: volunteerHouseholdId,
           volunteerCode: volunteerCode,
           isVolunteer: true,
-          isAdmin: isAdmin
+          isAdmin: isAdmin,
+          type: isAdmin ? 'admin' : 'volunteer'
         },
         JWT_SECRET,
         { expiresIn: '24h' }
