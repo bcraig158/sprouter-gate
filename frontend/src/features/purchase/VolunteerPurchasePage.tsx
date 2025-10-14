@@ -41,36 +41,47 @@ export default function VolunteerPurchasePage() {
     setError('');
 
     try {
-      // Track purchase intent for analytics
-      const trackPurchaseIntent = async () => {
-        try {
-          const response = await fetch('/.netlify/functions/api', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              action: 'track_purchase_intent',
-              show_id: eventKey,
-              quantity: 4, // Volunteers get 4 tickets
-              user_id: user?.studentId || user?.volunteerCode,
-              user_type: 'volunteer'
-            })
-          });
-          
-          if (response.ok) {
-            console.log('💰 Volunteer purchase intent tracked successfully');
+      // Track purchase intent for analytics - NON-BLOCKING
+      const trackPurchaseIntent = () => {
+        // Use setTimeout to make it completely non-blocking
+        setTimeout(async () => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
+            const response = await fetch('/.netlify/functions/api', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                action: 'track_purchase_intent',
+                show_id: eventKey,
+                quantity: 4, // Volunteers get 4 tickets
+                user_id: user?.studentId || user?.volunteerCode,
+                user_type: 'volunteer'
+              }),
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log('💰 Volunteer purchase intent tracked successfully');
+            }
+          } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
+              console.error('Failed to track volunteer purchase intent (non-blocking):', error);
+            }
           }
-        } catch (error) {
-          console.error('Failed to track volunteer purchase intent:', error);
-        }
+        }, 0); // Run immediately but asynchronously
       };
 
-      // Track the purchase intent
-      await trackPurchaseIntent();
+      // Start analytics tracking (non-blocking)
+      trackPurchaseIntent();
 
-      // Always use real API for production tracking
+      // Main user flow - this is what matters for UX
       const response = await api.post('/issue-intent', {
         eventKey,
         ticketsRequested: 4 // Volunteers get 4 tickets

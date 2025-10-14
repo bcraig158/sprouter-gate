@@ -1240,14 +1240,24 @@ exports.handler = async (event, context) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Get user's current state from database
-        const userStmt = db.prepare(`
-          SELECT * FROM user_logins 
-          WHERE user_id = ? 
-          ORDER BY login_timestamp DESC 
-          LIMIT 1
-        `);
-        const user = userStmt.get(decoded.householdId);
+        // Get user's current state from database - with error handling
+        let user = null;
+        try {
+          const userStmt = db.prepare(`
+            SELECT * FROM user_logins 
+            WHERE user_id = ? 
+            ORDER BY login_timestamp DESC 
+            LIMIT 1
+          `);
+          user = userStmt.get(decoded.householdId);
+        } catch (error) {
+          console.error('Error fetching user:', error);
+          return {
+            statusCode: 500,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: false, error: 'Database error fetching user' })
+          };
+        }
         
         if (!user) {
           return {
@@ -1257,28 +1267,53 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // Get user's show selections
-        const selectionsStmt = db.prepare(`
-          SELECT * FROM show_selections 
-          WHERE user_id = ? 
-          ORDER BY selection_timestamp DESC
-        `);
-        const selections = selectionsStmt.all(decoded.householdId);
+        // Get user's show selections - with proper error handling
+        let selections = [];
+        try {
+          const selectionsStmt = db.prepare(`
+            SELECT * FROM show_selections 
+            WHERE user_id = ? 
+            ORDER BY selection_timestamp DESC
+          `);
+          const selectionsResult = selectionsStmt.all(decoded.householdId);
+          selections = Array.isArray(selectionsResult) ? selectionsResult : [];
+        } catch (error) {
+          console.error('Error fetching selections:', error);
+          selections = [];
+        }
         
-        // Get user's purchases
-        const purchasesStmt = db.prepare(`
-          SELECT * FROM purchases 
-          WHERE user_id = ? 
-          ORDER BY purchase_timestamp DESC
-        `);
-        const purchases = purchasesStmt.all(decoded.householdId);
+        // Get user's purchases - with proper error handling
+        let purchases = [];
+        try {
+          const purchasesStmt = db.prepare(`
+            SELECT * FROM purchases 
+            WHERE user_id = ? 
+            ORDER BY purchase_timestamp DESC
+          `);
+          const purchasesResult = purchasesStmt.all(decoded.householdId);
+          purchases = Array.isArray(purchasesResult) ? purchasesResult : [];
+        } catch (error) {
+          console.error('Error fetching purchases:', error);
+          purchases = [];
+        }
+        
+        // Debug logging
+        console.log('State endpoint debug:', {
+          householdId: decoded.householdId,
+          selectionsType: typeof selections,
+          selectionsIsArray: Array.isArray(selections),
+          selectionsLength: selections ? selections.length : 'null/undefined',
+          purchasesType: typeof purchases,
+          purchasesIsArray: Array.isArray(purchases),
+          purchasesLength: purchases ? purchases.length : 'null/undefined'
+        });
         
         // Determine current phase based on selections and purchases
         let currentPhase = 'initial';
-        if (selections.length > 0) {
+        if (selections && selections.length > 0) {
           currentPhase = 'selected';
         }
-        if (purchases.length > 0) {
+        if (purchases && purchases.length > 0) {
           currentPhase = 'purchased';
         }
         
@@ -1296,13 +1331,13 @@ exports.handler = async (event, context) => {
           nightStates: [
             {
               night: 'tue',
-              phase: selections.some(s => s.show_id.includes('tue')) ? 'selected' : 'available',
-              selectedEvent: selections.find(s => s.show_id.includes('tue'))?.show_id || null
+              phase: (selections && Array.isArray(selections) && selections.some(s => s.show_id && s.show_id.includes('tue'))) ? 'selected' : 'available',
+              selectedEvent: (selections && Array.isArray(selections)) ? (selections.find(s => s.show_id && s.show_id.includes('tue'))?.show_id || null) : null
             },
             {
               night: 'thu', 
-              phase: selections.some(s => s.show_id.includes('thu')) ? 'selected' : 'available',
-              selectedEvent: selections.find(s => s.show_id.includes('thu'))?.show_id || null
+              phase: (selections && Array.isArray(selections) && selections.some(s => s.show_id && s.show_id.includes('thu'))) ? 'selected' : 'available',
+              selectedEvent: (selections && Array.isArray(selections)) ? (selections.find(s => s.show_id && s.show_id.includes('thu'))?.show_id || null) : null
             }
           ],
           availableEvents: [
@@ -1312,7 +1347,7 @@ exports.handler = async (event, context) => {
               date: '2025-10-28',
               time: '17:30',
               night: 'tue',
-              available: !selections.some(s => s.show_id === 'tue-530')
+              available: !(selections && Array.isArray(selections) && selections.some(s => s.show_id === 'tue-530'))
             },
             {
               key: 'tue-630',
@@ -1320,7 +1355,7 @@ exports.handler = async (event, context) => {
               date: '2025-10-28',
               time: '18:30',
               night: 'tue',
-              available: !selections.some(s => s.show_id === 'tue-630')
+              available: !(selections && Array.isArray(selections) && selections.some(s => s.show_id === 'tue-630'))
             },
             {
               key: 'thu-530',
@@ -1328,7 +1363,7 @@ exports.handler = async (event, context) => {
               date: '2025-10-30', 
               time: '17:30',
               night: 'thu',
-              available: !selections.some(s => s.show_id === 'thu-530')
+              available: !(selections && Array.isArray(selections) && selections.some(s => s.show_id === 'thu-530'))
             },
             {
               key: 'thu-630',
@@ -1336,7 +1371,7 @@ exports.handler = async (event, context) => {
               date: '2025-10-30',
               time: '18:30', 
               night: 'thu',
-              available: !selections.some(s => s.show_id === 'thu-630')
+              available: !(selections && Array.isArray(selections) && selections.some(s => s.show_id === 'thu-630'))
             }
           ]
         };

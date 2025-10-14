@@ -42,27 +42,22 @@ interface Event {
   night: string;
 }
 
-interface NightState {
-  night: string;
-  tickets_requested: number;
-  tickets_purchased: number;
-  shows_selected: string[];
-}
 
 interface StateResponse {
   householdId: string;
   isVolunteer: boolean;
-  currentPhase: 'initial' | 'second-wave';
+  currentPhase: 'initial' | 'selected' | 'purchased';
   allowance: {
     baseAllowance: number;
     volunteerBonus: number;
-    secondWaveBonus: number;
-    totalAllowance: number;
     isVolunteer: boolean;
-    isSecondWave: boolean;
-    maxAllowed: number;
+    totalAllowance: number;
   };
-  nightStates: NightState[];
+  nightStates: Array<{
+    night: string;
+    phase: string;
+    selectedEvent: string | null;
+  }>;
   availableEvents: Event[];
 }
 
@@ -92,8 +87,16 @@ export default function VolunteerSelectPage() {
     try {
       // Always use real API for production tracking
       const response = await api.get('/state');
-      setState(response.data);
+      console.log('Volunteer State API response:', response.data);
+      
+      // The API returns { success: true, data: stateResponse }
+      if (response.data.success && response.data.data) {
+        setState(response.data.data);
+      } else {
+        throw new Error('Invalid response structure');
+      }
     } catch (err) {
+      console.error('Volunteer state fetch error:', err);
       setError('Failed to load your current state');
     } finally {
       setIsLoading(false);
@@ -102,36 +105,47 @@ export default function VolunteerSelectPage() {
 
   const handleSelectSlot = async (night: 'tue' | 'thu', eventKey: string) => {
     try {
-      // Track show selection for analytics
-      const trackShowSelection = async () => {
-        try {
-          const response = await fetch('/.netlify/functions/api', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              action: 'track_show_selection',
-              show_id: eventKey,
-              show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
-              user_id: user?.studentId || user?.volunteerCode,
-              user_type: 'volunteer'
-            })
-          });
-          
-          if (response.ok) {
-            console.log('🎭 Volunteer show selection tracked successfully');
+      // Track show selection for analytics - NON-BLOCKING
+      const trackShowSelection = () => {
+        // Use setTimeout to make it completely non-blocking
+        setTimeout(async () => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
+            const response = await fetch('/.netlify/functions/api', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                action: 'track_show_selection',
+                show_id: eventKey,
+                show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
+                user_id: user?.studentId || user?.volunteerCode,
+                user_type: 'volunteer'
+              }),
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log('🎭 Volunteer show selection tracked successfully');
+            }
+          } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
+              console.error('Failed to track volunteer show selection (non-blocking):', error);
+            }
           }
-        } catch (error) {
-          console.error('Failed to track volunteer show selection:', error);
-        }
+        }, 0); // Run immediately but asynchronously
       };
 
-      // Track the selection
-      await trackShowSelection();
+      // Start analytics tracking (non-blocking)
+      trackShowSelection();
 
-      // Always use real API for production tracking
+      // Main user flow - this is what matters for UX
       await api.post('/select-slot', {
         night,
         eventKey,
