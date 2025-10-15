@@ -103,45 +103,28 @@ export default function SelectPage() {
 
   const handleSelectSlot = async (night: 'tue' | 'thu', eventKey: string) => {
     try {
-      // Track show selection for analytics - NON-BLOCKING
-      const trackShowSelection = () => {
-        // Use setTimeout to make it completely non-blocking
-        setTimeout(async () => {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-            
-            const response = await fetch('/.netlify/functions/api', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify({
-                action: 'track_show_selection',
-                show_id: eventKey,
-                show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
-                user_id: user?.studentId || user?.volunteerCode,
-                user_type: user?.isVolunteer ? 'volunteer' : 'student'
-              }),
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              console.log('🎭 Show selection tracked successfully');
-            }
-          } catch (error) {
-            if (error instanceof Error && error.name !== 'AbortError') {
-              console.error('Failed to track show selection (non-blocking):', error);
-            }
-          }
-        }, 0); // Run immediately but asynchronously
-      };
-
-      // Start analytics tracking (non-blocking)
-      trackShowSelection();
+      // Track show selection (non-blocking)
+      setTimeout(async () => {
+        try {
+          await fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              route: '/track_show_selection',
+              show_id: eventKey,
+              show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
+              user_id: user?.householdId,
+              user_type: user?.isVolunteer ? 'volunteer' : 'student'
+            })
+          });
+          console.log('🎭 Show selection tracked');
+        } catch (error) {
+          console.error('Show selection tracking failed:', error);
+        }
+      }, 0);
 
       // Main user flow - this is what matters for UX
       await api.post('/select-slot', {

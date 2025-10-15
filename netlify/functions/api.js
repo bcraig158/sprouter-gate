@@ -1479,5 +1479,38 @@ exports.handler = async (event, context) => {
       })
     };
   }
+
+  // Track login endpoint
+  if (route === '/track_login' && httpMethod === 'POST') {
+    try {
+      const { user_id, user_type, identifier } = requestData;
+      
+      await secureStorage.storeLogin({
+        user_id,
+        user_type,
+        identifier,
+        email: '',
+        name: '',
+        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
+        user_agent: headers['user-agent'] || '',
+        login_timestamp: new Date().toISOString(),
+        session_id: `session_${user_id}_${Date.now()}`,
+        domain: headers.host || 'unknown'
+      });
+      
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, message: 'Login tracked' })
+      };
+    } catch (error) {
+      console.error('Login tracking error:', error);
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: false, error: error.message })
+      };
+    }
+  }
 };
 

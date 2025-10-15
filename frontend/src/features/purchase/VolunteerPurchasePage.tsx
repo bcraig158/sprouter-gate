@@ -34,6 +34,42 @@ export default function VolunteerPurchasePage() {
     }
   }, [eventKey]);
 
+  // Track Sprouter iframe events
+  useEffect(() => {
+    const handleSprouterMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://events.sprouter.online') return;
+      
+      console.log('Sprouter message:', event.data);
+      
+      if (event.data && event.data.type === 'sprouter_checkout_completed') {
+        // Track successful purchase
+        fetch('/.netlify/functions/api', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            route: '/track_purchase_completed',
+            show_id: eventKey,
+            quantity: event.data.quantity || 4,
+            total_cost: event.data.totalCost || 100,
+            user_id: user?.householdId,
+            user_type: 'volunteer',
+            sprouter_transaction_id: event.data.transactionId
+          })
+        }).then(() => {
+          console.log('✅ Volunteer purchase completion tracked');
+        }).catch(err => {
+          console.error('❌ Volunteer purchase tracking failed:', err);
+        });
+      }
+    };
+    
+    window.addEventListener('message', handleSprouterMessage);
+    return () => window.removeEventListener('message', handleSprouterMessage);
+  }, [eventKey, user]);
+
   const handleIssueIntent = async () => {
     if (!eventKey) return;
     
@@ -41,47 +77,30 @@ export default function VolunteerPurchasePage() {
     setError('');
 
     try {
-      // Track purchase intent for analytics - NON-BLOCKING
-      const trackPurchaseIntent = () => {
-        // Use setTimeout to make it completely non-blocking
-        setTimeout(async () => {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-            
-            const response = await fetch('/.netlify/functions/api', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify({
-                action: 'track_purchase_intent',
-                show_id: eventKey,
-                quantity: 4, // Volunteers get 4 tickets
-                user_id: user?.studentId || user?.volunteerCode,
-                user_type: 'volunteer'
-              }),
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              console.log('💰 Volunteer purchase intent tracked successfully');
-            }
-          } catch (error) {
-            if (error instanceof Error && error.name !== 'AbortError') {
-              console.error('Failed to track volunteer purchase intent (non-blocking):', error);
-            }
-          }
-        }, 0); // Run immediately but asynchronously
-      };
+      // Track purchase intent (non-blocking)
+      setTimeout(async () => {
+        try {
+          await fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              route: '/track_purchase_intent',
+              show_id: eventKey,
+              quantity: 4,
+              user_id: user?.householdId,
+              user_type: 'volunteer'
+            })
+          });
+          console.log('💰 Volunteer purchase intent tracked');
+        } catch (error) {
+          console.error('Volunteer purchase intent tracking failed:', error);
+        }
+      }, 0);
 
-      // Start analytics tracking (non-blocking)
-      trackPurchaseIntent();
-
-      // Main user flow - this is what matters for UX
+      // Main user flow
       const response = await api.post('/issue-intent', {
         eventKey,
         ticketsRequested: 4 // Volunteers get 4 tickets
@@ -94,39 +113,6 @@ export default function VolunteerPurchasePage() {
     }
   };
 
-  // Track purchase completion (can be called when purchase is successful)
-  const trackPurchaseCompletion = async (quantity: number = 4, totalCost: number = 100) => {
-    try {
-      const response = await fetch('/.netlify/functions/api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          action: 'track_purchase_completed',
-          show_id: eventKey,
-          quantity: quantity,
-          total_cost: totalCost,
-          user_id: user?.studentId || user?.volunteerCode,
-          user_type: 'volunteer'
-        })
-      });
-      
-      if (response.ok) {
-        console.log('✅ Volunteer purchase completion tracked successfully');
-      }
-    } catch (error) {
-      console.error('Failed to track volunteer purchase completion:', error);
-    }
-  };
-
-  // Expose tracking function globally for Sprouter callbacks
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).trackPurchaseCompletion = trackPurchaseCompletion;
-    }
-  }, [eventKey, user]);
 
   const handleBackToSelect = () => {
     navigate('/volunteer-select');

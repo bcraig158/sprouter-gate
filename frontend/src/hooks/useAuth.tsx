@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import jwtDecode from 'jwt-decode';
-import sessionTracker from '../services/sessionTracking';
-import { eventTracker } from '../services/eventTracking';
 import { authService } from '../services/api';
 
 interface User {
@@ -56,23 +54,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
           setUser(userData);
           
-          // Initialize session tracking for existing user (non-blocking)
+          // Simple login tracking (non-blocking)
           try {
-            const sessionId = `session_${decoded.householdId}_${Date.now()}`;
-            sessionTracker.initialize(
-              decoded.householdId, 
-              decoded.isVolunteer ? 'volunteer' : 'student', 
-              sessionId
-            );
-            
-            // Initialize event tracking for existing user
-            eventTracker.setUser(
-              decoded.householdId,
-              decoded.isVolunteer ? 'volunteer' : 'student'
-            );
+            fetch('/.netlify/functions/api', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                route: '/track_login',
+                user_id: decoded.householdId,
+                user_type: decoded.isVolunteer ? 'volunteer' : 'student',
+                identifier: decoded.studentId || decoded.volunteerCode
+              })
+            }).catch(err => console.warn('Login tracking failed:', err));
           } catch (error) {
-            console.warn('Tracking initialization failed for existing user:', error);
-            // Don't let tracking errors affect login
+            console.warn('Tracking failed:', error);
           }
         } else {
           localStorage.removeItem('token');
@@ -100,22 +95,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Initialize session tracking for new login (non-blocking)
+        // Simple login tracking (non-blocking)
         try {
-          sessionTracker.initialize(data.user.household_id, 'student', data.sessionId);
-          
-          // Initialize event tracking for new login
-          eventTracker.setUser(data.user.household_id, 'student');
-          
-          // Force flush data immediately (non-blocking)
-          setTimeout(() => {
-            sessionTracker.forceFlush().catch(err => 
-              console.warn('Session tracking flush failed:', err)
-            );
-          }, 1000);
+          fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              route: '/track_login',
+              user_id: data.user.household_id,
+              user_type: 'student',
+              identifier: studentId.trim()
+            })
+          }).catch(err => console.warn('Login tracking failed:', err));
         } catch (error) {
-          console.warn('Tracking initialization failed:', error);
-          // Don't let tracking errors affect login
+          console.warn('Tracking failed:', error);
         }
         
         return true;
@@ -144,22 +137,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Initialize session tracking for volunteer login (non-blocking)
+        // Simple login tracking (non-blocking)
         try {
-          sessionTracker.initialize(data.user.code, 'volunteer', data.sessionId);
-          
-          // Initialize event tracking for volunteer login
-          eventTracker.setUser(data.user.code, 'volunteer');
-          
-          // Force flush data immediately (non-blocking)
-          setTimeout(() => {
-            sessionTracker.forceFlush().catch(err => 
-              console.warn('Session tracking flush failed:', err)
-            );
-          }, 1000);
+          fetch('/.netlify/functions/api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              route: '/track_login',
+              user_id: data.user.code,
+              user_type: 'volunteer',
+              identifier: volunteerCode.trim()
+            })
+          }).catch(err => console.warn('Login tracking failed:', err));
         } catch (error) {
-          console.warn('Tracking initialization failed:', error);
-          // Don't let tracking errors affect login
+          console.warn('Tracking failed:', error);
         }
         
         return true;
@@ -172,9 +163,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
-    // Stop session tracking before logout
-    sessionTracker.stop();
-    
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');

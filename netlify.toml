@@ -107,3 +107,9 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# API redirects
+[[redirects]]
+  from = "/api/track_login"
+  to = "/.netlify/functions/api"
+  status = 200
