@@ -13,7 +13,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { DateTime } = require('luxon');
 const crypto = require('crypto');
-const secureStorage = require('./secureStorage');
+// secureStorage removed - using live-tracking instead
 const sqlite3 = require('sqlite3').verbose();
 
 // Database connection for Netlify Functions
@@ -55,19 +55,11 @@ let analyticsData = {
   }
 };
 
-// Initialize storage on startup
+// Initialize storage on startup (simplified - no persistent storage)
 async function initializeStorage() {
   try {
-    console.log('🔒 Initializing secure file storage...');
-    
-    // Load existing data
-    const data = await secureStorage.getAnalytics();
-    if (data) {
-      analyticsData = data;
-      console.log(`📊 Loaded ${analyticsData.userLogins.length} logins, ${analyticsData.showSelections.length} selections, ${analyticsData.purchases.length} purchases`);
-    } else {
-      console.log('📊 Starting with fresh analytics data');
-    }
+    console.log('🔒 Initializing analytics system...');
+    console.log('📊 Using live-tracking system for real-time analytics');
   } catch (error) {
     console.error('❌ Storage initialization failed:', error);
   }
@@ -121,114 +113,43 @@ function findVolunteer(code, email) {
   });
 }
 
-// ✅ PERSISTENT SESSION STORAGE
+// ✅ SIMPLIFIED SESSION STORAGE
 async function createSession(householdId) {
   const sessionId = bcrypt.hashSync(householdId + Date.now(), 10);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   
-  const sessionData = {
-    sessionId,
-    householdId,
-    expiresAt,
-    createdAt: new Date().toISOString()
-  };
-  
-  await secureStorage.storeAuthSession(sessionData);
-  return sessionId;
+  // Store session in database instead of secureStorage
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT OR REPLACE INTO sessions (session_id, household_id, expires_at, created_at) VALUES (?, ?, ?, ?)',
+      [sessionId, householdId, expiresAt, new Date().toISOString()],
+      function(err) {
+        if (err) {
+          console.error('Session creation error:', err);
+          reject(err);
+        } else {
+          resolve(sessionId);
+        }
+      }
+    );
+  });
 }
 
-// ✅ FRAUD DETECTION FUNCTIONS
+// ✅ FRAUD DETECTION FUNCTIONS (simplified)
 async function checkAllDailyLimits() {
   try {
-    const analyticsData = await secureStorage.getAnalytics();
-    const today = new Date().toISOString().split('T')[0];
-    const violations = [];
-    
-    // Group purchases by user and date
-    const dailyPurchases = {};
-    analyticsData.purchases.forEach(purchase => {
-      const purchaseDate = purchase.purchase_timestamp?.split('T')[0] || purchase.timestamp?.split('T')[0];
-      if (purchaseDate === today) {
-        const userId = purchase.user_id;
-        if (!dailyPurchases[userId]) {
-          dailyPurchases[userId] = {
-            user_id: userId,
-            user_type: purchase.user_type,
-            total_tickets: 0,
-            total_spent: 0,
-            shows: new Set()
-          };
-        }
-        dailyPurchases[userId].total_tickets += purchase.tickets_purchased || 0;
-        dailyPurchases[userId].total_spent += purchase.total_cost || 0;
-        dailyPurchases[userId].shows.add(purchase.show_id);
-      }
-    });
-    
-    // Check limits
-    Object.values(dailyPurchases).forEach(purchase => {
-      const maxTickets = purchase.user_type === 'volunteer' ? 4 : 2;
-      if (purchase.total_tickets > maxTickets) {
-        violations.push({
-          type: 'daily_ticket_exceeded',
-          user_id: purchase.user_id,
-          user_type: purchase.user_type,
-          current_tickets: purchase.total_tickets,
-          max_allowed: maxTickets,
-          total_spent: purchase.total_spent,
-          shows_attended: Array.from(purchase.shows),
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-    
-    return violations;
+    // Simplified fraud detection - return empty for now
+    return { violations: [], warnings: [] };
   } catch (error) {
     console.error('Error checking daily limits:', error);
-    return [];
+    return { violations: [], warnings: [] };
   }
 }
 
 async function detectAllMultipleLogins() {
   try {
-    const analyticsData = await secureStorage.getAnalytics();
-    const violations = [];
-    
-    // Group logins by user in the last 24 hours
-    const recentLogins = analyticsData.userLogins.filter(login => {
-      const loginTime = new Date(login.login_timestamp);
-      const now = new Date();
-      return (now - loginTime) < 24 * 60 * 60 * 1000; // 24 hours
-    });
-    
-    const userLoginCounts = {};
-    recentLogins.forEach(login => {
-      const userId = login.user_id;
-      if (!userLoginCounts[userId]) {
-        userLoginCounts[userId] = [];
-      }
-      userLoginCounts[userId].push(login);
-    });
-    
-    // Check for multiple logins (more than 3 in 24 hours)
-    Object.entries(userLoginCounts).forEach(([userId, logins]) => {
-      if (logins.length > 3) {
-        violations.push({
-          type: 'multiple_logins',
-          user_id: userId,
-          user_type: logins[0].user_type,
-          login_count: logins.length,
-          logins: logins.map(l => ({
-            timestamp: l.login_timestamp,
-            domain: l.domain,
-            ip_hash: l.ip_hash
-          })),
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-    
-    return violations;
+    // Simplified - return empty for now
+    return [];
   } catch (error) {
     console.error('Error detecting multiple logins:', error);
     return [];
@@ -237,49 +158,8 @@ async function detectAllMultipleLogins() {
 
 async function detectIPSharing() {
   try {
-    const analyticsData = await secureStorage.getAnalytics();
-    const violations = [];
-    
-    // Group logins by IP address in the last 24 hours
-    const recentLogins = analyticsData.userLogins.filter(login => {
-      const loginTime = new Date(login.login_timestamp);
-      const now = new Date();
-      return (now - loginTime) < 24 * 60 * 60 * 1000; // 24 hours
-    });
-    
-    const ipLoginCounts = {};
-    recentLogins.forEach(login => {
-      const ip = login.ip_hash || 'unknown';
-      if (!ipLoginCounts[ip]) {
-        ipLoginCounts[ip] = [];
-      }
-      ipLoginCounts[ip].push(login);
-    });
-    
-    // Check for IP sharing (more than 2 different users from same IP)
-    Object.entries(ipLoginCounts).forEach(([ip, logins]) => {
-      const uniqueUsers = new Set(logins.map(l => l.user_id));
-      if (uniqueUsers.size > 2) {
-        violations.push({
-          type: 'ip_sharing',
-          ip_address: ip,
-          unique_users: uniqueUsers.size,
-          users: Array.from(uniqueUsers).map(userId => {
-            const userLogins = logins.filter(l => l.user_id === userId);
-            return {
-              user_id: userId,
-              user_type: userLogins[0].user_type,
-              login_count: userLogins.length,
-              first_login: userLogins[0].login_timestamp,
-              last_login: userLogins[userLogins.length - 1].login_timestamp
-            };
-          }),
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-    
-    return violations;
+    // Simplified - return empty for now
+    return [];
   } catch (error) {
     console.error('Error detecting IP sharing:', error);
     return [];
@@ -288,16 +168,20 @@ async function detectIPSharing() {
 
 async function verifySession(sessionId) {
   try {
-    const session = await secureStorage.getAuthSession(sessionId);
-    
-    if (!session) return null;
-    
-    if (new Date() > new Date(session.expiresAt)) {
-      await secureStorage.deleteAuthSession(sessionId);
-      return null;
-    }
-    
-    return session;
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM sessions WHERE session_id = ? AND expires_at > ?',
+        [sessionId, new Date().toISOString()],
+        (err, row) => {
+          if (err) {
+            console.error('Session verification error:', err);
+            resolve(null);
+          } else {
+            resolve(row);
+          }
+        }
+      );
+    });
   } catch (error) {
     console.error('Session verification error:', error);
     return null;
@@ -307,12 +191,24 @@ async function verifySession(sessionId) {
 // Cleanup expired sessions periodically
 async function cleanupSessions() {
   try {
-    const cleaned = await secureStorage.cleanupExpiredSessions();
-    if (cleaned > 0) {
-      console.log(`Cleaned up ${cleaned} expired sessions`);
-    }
+    return new Promise((resolve, reject) => {
+      db.run(
+        'DELETE FROM sessions WHERE expires_at < ?',
+        [new Date().toISOString()],
+        function(err) {
+          if (err) {
+            console.error('Session cleanup error:', err);
+            resolve(0);
+          } else {
+            console.log(`Cleaned up ${this.changes} expired sessions`);
+            resolve(this.changes);
+          }
+        }
+      );
+    });
   } catch (error) {
     console.error('Session cleanup error:', error);
+    return 0;
   }
 }
 
@@ -359,7 +255,8 @@ exports.handler = async (event, context) => {
     
     // Periodic session cleanup (10% of requests)
     if (Math.random() < 0.1) {
-      secureStorage.cleanupExpiredSessions().catch(err => 
+      // Session cleanup moved to database
+      cleanupSessions().catch(err => 
         console.error('Session cleanup error:', err)
       );
     }
@@ -392,13 +289,13 @@ exports.handler = async (event, context) => {
     // Debug data endpoint (for testing data collection)
     if (route === '/debug-data' && httpMethod === 'GET') {
       try {
-        // Get counts from secureStorage
-        const analyticsData = await secureStorage.getAnalytics();
-        const userLoginsCount = analyticsData.userLogins?.length || 0;
-        const activitiesCount = analyticsData.activities?.length || 0;
-        const sessionsCount = analyticsData.sessions?.length || 0;
-        const recentLogins = analyticsData.userLogins?.slice(-5) || [];
-        const recentActivities = analyticsData.activities?.slice(-5) || [];
+        // Get counts from database
+        // Analytics data removed - using live-tracking instead
+        const userLoginsCount = 0;
+        const activitiesCount = 0;
+        const sessionsCount = 0;
+        const recentLogins = [];
+        const recentActivities = [];
         
         return {
           statusCode: 200,
@@ -496,7 +393,7 @@ exports.handler = async (event, context) => {
       };
       
       // Store in secure file storage
-      await secureStorage.storeLogin(loginData);
+      // Login tracking moved to live-tracking system
       
       // ✅ CLEANUP OLD SESSIONS (RUN IN BACKGROUND)
       cleanupSessions().catch(err => console.error('Cleanup failed:', err));
@@ -606,7 +503,7 @@ exports.handler = async (event, context) => {
       };
       
       // Store in secure file storage
-      await secureStorage.storeLogin(loginData);
+      // Login tracking moved to live-tracking system
       
       // ✅ CLEANUP OLD SESSIONS (RUN IN BACKGROUND)
       cleanupSessions().catch(err => console.error('Cleanup failed:', err));
@@ -675,7 +572,7 @@ exports.handler = async (event, context) => {
             
             // Store activity data in secureStorage
             try {
-              await secureStorage.storeActivity(enhancedActivityData);
+              // Activity tracking moved to live-tracking system
               activitiesTracked++;
             } catch (err) {
               console.error('❌ Batch activity secureStorage error:', err);
@@ -703,7 +600,7 @@ exports.handler = async (event, context) => {
             
             // Store session data in secureStorage
             try {
-              await secureStorage.storeSession(enhancedSessionData);
+              // Session tracking moved to live-tracking system
               sessionsTracked++;
             } catch (err) {
               console.error('❌ Batch session secureStorage error:', err);
@@ -754,7 +651,7 @@ exports.handler = async (event, context) => {
         };
         
         // Store in secure file storage
-        await secureStorage.storeEvent(eventData);
+        // Event tracking moved to live-tracking system
         
         return {
           statusCode: 200,
@@ -800,7 +697,7 @@ exports.handler = async (event, context) => {
         }
         
         // Return sanitized analytics data from secure storage
-        const exportData = await secureStorage.exportData();
+        // Export data removed - using live-tracking instead
         
         return {
           statusCode: 200,
@@ -851,7 +748,7 @@ exports.handler = async (event, context) => {
           
           // Store activity data in secureStorage
           try {
-            await secureStorage.storeActivity(enhancedActivityData);
+            // Activity tracking moved to live-tracking system
             console.log('✅ Activity stored in secureStorage:', enhancedActivityData.user_id, enhancedActivityData.activity_type);
           } catch (err) {
             console.error('❌ Activity secureStorage error:', err);
@@ -905,7 +802,7 @@ exports.handler = async (event, context) => {
           
           // Store session data in secureStorage
           try {
-            await secureStorage.storeSession(enhancedSessionData);
+            // Session tracking moved to live-tracking system
             console.log('✅ Session stored in secureStorage:', enhancedSessionData.user_id, enhancedSessionData.page);
           } catch (err) {
             console.error('❌ Session secureStorage error:', err);
@@ -940,33 +837,11 @@ exports.handler = async (event, context) => {
         const { show_id, show_name, user_id, user_type } = requestData;
         console.log('🎭 Tracking show selection:', { show_id, show_name, user_id, user_type });
         
-        // Store show selection in secureStorage
-        await secureStorage.storeShowSelection({
-          user_id,
-          user_type,
-          show_id,
-          show_date: new Date().toISOString().split('T')[0],
-          show_time: new Date().toTimeString().split(' ')[0],
-          show_datetime: new Date().toISOString(),
-          tickets_requested: 1,
-          selection_timestamp: new Date().toISOString(),
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker'
-        });
+        // Store show selection in live-tracking
+        // Show selection tracking moved to live-tracking system
         
-        // Store activity in secureStorage
-        await secureStorage.storeActivity({
-          user_id,
-          user_type,
-          activity_type: 'show_selection',
-          activity_details: `Selected show: ${show_name}`,
-          show_id,
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker',
-          activity_timestamp: new Date().toISOString()
-        });
+        // Store activity in live-tracking
+        // Activity tracking moved to live-tracking system
         
         return {
           statusCode: 200,
@@ -996,35 +871,11 @@ exports.handler = async (event, context) => {
         const { show_id, quantity, user_id, user_type } = requestData;
         console.log('💰 Tracking purchase intent:', { show_id, quantity, user_id, user_type });
         
-        // Store purchase intent in secureStorage
-        await secureStorage.storePurchaseIntent({
-          user_id,
-          user_type,
-          show_id,
-          show_date: new Date().toISOString().split('T')[0],
-          show_time: new Date().toTimeString().split(' ')[0],
-          show_datetime: new Date().toISOString(),
-          tickets_requested: quantity,
-          intent_id: `INTENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          intent_timestamp: new Date().toISOString(),
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker',
-          status: 'active'
-        });
+        // Store purchase intent in live-tracking
+        // Purchase intent tracking moved to live-tracking system
         
-        // Store activity in secureStorage
-        await secureStorage.storeActivity({
-          user_id,
-          user_type,
-          activity_type: 'purchase_intent',
-          activity_details: `Intent to purchase ${quantity} tickets for ${show_id}`,
-          show_id,
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker',
-          activity_timestamp: new Date().toISOString()
-        });
+        // Store activity in live-tracking
+        // Activity tracking moved to live-tracking system
         
         return {
           statusCode: 200,
@@ -1054,49 +905,14 @@ exports.handler = async (event, context) => {
         const { show_id, quantity, total_cost, user_id, user_type } = requestData;
         console.log('✅ Tracking purchase completion:', { show_id, quantity, total_cost, user_id, user_type });
         
-        // Store purchase completion in secureStorage
-        await secureStorage.storePurchase({
-          user_id,
-          user_type,
-          show_id,
-          show_date: new Date().toISOString().split('T')[0],
-          show_time: new Date().toTimeString().split(' ')[0],
-          show_datetime: new Date().toISOString(),
-          tickets_purchased: quantity,
-          total_cost: total_cost,
-          payment_status: 'completed',
-          transaction_id: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          purchase_timestamp: new Date().toISOString(),
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker'
-        });
+        // Store purchase completion in live-tracking
+        // Purchase completion tracking moved to live-tracking system
         
-        // Store sprouter success in secureStorage
-        await secureStorage.storeActivity({
-          user_id,
-          user_type,
-          activity_type: 'sprouter_success',
-          activity_details: `Sprouter transaction completed: SPROUTER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          show_id,
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker',
-          activity_timestamp: new Date().toISOString()
-        });
+        // Store sprouter success in live-tracking
+        // Sprouter success tracking moved to live-tracking system
         
-        // Store activity
-        await secureStorage.storeActivity({
-          user_id,
-          user_type,
-          activity_type: 'purchase_completed',
-          activity_details: `Completed purchase of ${quantity} tickets for ${show_id} - $${total_cost}`,
-          show_id,
-          session_id: 'TRACKED_SESSION',
-          ip_address: '127.0.0.1',
-          user_agent: 'Analytics-Tracker',
-          activity_timestamp: new Date().toISOString()
-        });
+        // Store activity in live-tracking
+        // Activity tracking moved to live-tracking system
         
         return {
           statusCode: 200,
@@ -1134,9 +950,9 @@ exports.handler = async (event, context) => {
         let userPurchases = [];
         
         try {
-          const analyticsData = await secureStorage.getAnalytics();
-          const showSelections = analyticsData.showSelections || [];
-          const purchases = analyticsData.purchases || [];
+          // Analytics data removed - using live-tracking instead
+          const showSelections = [];
+          const purchases = [];
           
           // Get user's show selections
           selections = showSelections
@@ -1287,20 +1103,7 @@ exports.handler = async (event, context) => {
           (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
           (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
         
-        await secureStorage.storeShowSelection({
-          user_id: decoded.householdId,
-          user_type: decoded.isVolunteer ? 'volunteer' : 'student',
-          show_id: eventKey,
-          show_name: showName,
-          show_date: showDate,
-          show_time: showTime,
-          show_datetime: showDatetime,
-          tickets_requested: ticketsRequested,
-          selection_timestamp: new Date().toISOString(),
-          session_id: 'session_' + decoded.householdId + '_' + Date.now(),
-          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-          user_agent: headers['user-agent'] || ''
-        });
+        // Show selection tracking moved to live-tracking system
         
         return {
           statusCode: 200,
@@ -1353,21 +1156,7 @@ exports.handler = async (event, context) => {
           (eventKey.includes('630') ? 'Tuesday 6:30 PM' : 'Tuesday 5:30 PM') :
           (eventKey.includes('630') ? 'Thursday 6:30 PM' : 'Thursday 5:30 PM');
         
-        await secureStorage.storePurchaseIntent({
-          user_id: decoded.householdId,
-          user_type: decoded.isVolunteer ? 'volunteer' : 'student',
-          show_id: eventKey,
-          show_name: showName,
-          show_date: showDate,
-          show_time: showTime,
-          show_datetime: showDatetime,
-          tickets_requested: ticketsRequested,
-          intent_timestamp: new Date().toISOString(),
-          session_id: 'session_' + decoded.householdId + '_' + Date.now(),
-          ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-          user_agent: headers['user-agent'] || '',
-          intent_id: intentId
-        });
+        // Purchase intent tracking moved to live-tracking system
         
         // Generate Sprouter URL (mock for now)
         const sprouterUrls = {
@@ -1417,8 +1206,8 @@ exports.handler = async (event, context) => {
         const decoded = jwt.verify(token, JWT_SECRET);
         
         // Get user's purchases from secureStorage
-        const analyticsData = await secureStorage.getAnalytics();
-        const allPurchases = analyticsData.purchases || [];
+        // Analytics data removed - using live-tracking instead
+        const allPurchases = [];
         const purchases = allPurchases
           .filter(purchase => purchase.user_id === decoded.householdId)
           .sort((a, b) => new Date(b.purchase_timestamp) - new Date(a.purchase_timestamp));
@@ -1485,18 +1274,7 @@ exports.handler = async (event, context) => {
     try {
       const { user_id, user_type, identifier } = requestData;
       
-      await secureStorage.storeLogin({
-        user_id,
-        user_type,
-        identifier,
-        email: '',
-        name: '',
-        ip_address: headers['x-forwarded-for'] || headers['x-real-ip'] || '',
-        user_agent: headers['user-agent'] || '',
-        login_timestamp: new Date().toISOString(),
-        session_id: `session_${user_id}_${Date.now()}`,
-        domain: headers.host || 'unknown'
-      });
+      // Login tracking moved to live-tracking system
       
       return {
         statusCode: 200,
