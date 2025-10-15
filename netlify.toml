@@ -39,9 +39,11 @@
   to = "/.netlify/functions/auth"
   status = 200
 
+# Old analytics redirect removed - using live-tracking instead
+
 [[redirects]]
-  from = "/api/analytics"
-  to = "/.netlify/functions/analytics"
+  from = "/api/live-tracking"
+  to = "/.netlify/functions/live-tracking"
   status = 200
 
 [[redirects]]

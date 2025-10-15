@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
+import { liveTracking } from '../../services/liveTracking';
 
 interface PurchaseResponse {
   success: boolean;
@@ -42,27 +43,27 @@ export default function VolunteerPurchasePage() {
       console.log('Sprouter message:', event.data);
       
       if (event.data && event.data.type === 'sprouter_checkout_completed') {
-        // Track successful purchase
-        fetch('/.netlify/functions/api', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            route: '/track_purchase_completed',
-            show_id: eventKey,
+        // Live tracking for volunteer purchase completion
+        try {
+          const eventInfo = {
+            'tue-530': 'Tuesday 5:30 PM',
+            'tue-630': 'Tuesday 6:30 PM',
+            'thu-530': 'Thursday 5:30 PM',
+            'thu-630': 'Thursday 6:30 PM',
+          };
+          
+          liveTracking.trackPurchaseCompleted({
+            userId: user?.householdId || '',
+            studentId: user?.volunteerCode || '',
+            eventName: eventInfo[eventKey as keyof typeof eventInfo] || eventKey,
+            eventKey: eventKey,
             quantity: event.data.quantity || 4,
-            total_cost: event.data.totalCost || 100,
-            user_id: user?.householdId,
-            user_type: 'volunteer',
-            sprouter_transaction_id: event.data.transactionId
-          })
-        }).then(() => {
-          console.log('✅ Volunteer purchase completion tracked');
-        }).catch(err => {
-          console.error('❌ Volunteer purchase tracking failed:', err);
-        });
+            amount: event.data.totalCost || 100,
+            transactionId: event.data.transactionId
+          });
+        } catch (error) {
+          console.error('❌ Volunteer purchase tracking failed:', error);
+        }
       }
     };
     

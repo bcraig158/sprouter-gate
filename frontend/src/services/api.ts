@@ -80,16 +80,16 @@ export const authService = {
   }
 };
 
-// Analytics service
-export const analyticsService = {
-  getAnalytics: async (token: string) => {
-    const response = await api.get('/analytics', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    return response.data;
-  }
-};
+// Analytics service (deprecated - use liveTracking service instead)
+// export const analyticsService = {
+//   getAnalytics: async (token: string) => {
+//     const response = await api.get('/analytics', {
+//       headers: {
+//         Authorization: `Bearer ${token}`
+//       }
+//     });
+//     return response.data;
+//   }
+// };
 
 export default api;

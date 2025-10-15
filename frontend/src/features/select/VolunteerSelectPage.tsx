@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
+import { liveTracking } from '../../services/liveTracking';
 import { formatDateTime, getTimeUntilEvent } from '../../utils/dateUtils';
 
 // FAQ Item Component
@@ -105,28 +106,17 @@ export default function VolunteerSelectPage() {
 
   const handleSelectSlot = async (night: 'tue' | 'thu', eventKey: string) => {
     try {
-      // Track show selection (non-blocking)
-      setTimeout(async () => {
-        try {
-          await fetch('/.netlify/functions/api', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              route: '/track_show_selection',
-              show_id: eventKey,
-              show_name: state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey,
-              user_id: user?.householdId,
-              user_type: 'volunteer'
-            })
-          });
-          console.log('🎭 Volunteer show selection tracked');
-        } catch (error) {
-          console.error('Volunteer show selection tracking failed:', error);
-        }
-      }, 0);
+      // Live tracking (non-blocking)
+      try {
+        const eventName = state?.availableEvents.find((e: Event) => e.key === eventKey)?.name || eventKey;
+        liveTracking.trackEventSelection(
+          user?.householdId || '',
+          eventName,
+          eventKey
+        );
+      } catch (error) {
+        console.error('Volunteer event selection tracking failed:', error);
+      }
 
       // Main user flow - this is what matters for UX
       await api.post('/select-slot', {

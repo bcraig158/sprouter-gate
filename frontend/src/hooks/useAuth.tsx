@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import jwtDecode from 'jwt-decode';
 import { authService } from '../services/api';
+import { liveTracking } from '../services/liveTracking';
 
 interface User {
   householdId: string;
@@ -54,20 +55,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
           setUser(userData);
           
-          // Simple login tracking (non-blocking)
+          // Live tracking (non-blocking)
           try {
-            fetch('/.netlify/functions/api', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                route: '/track_login',
-                user_id: decoded.householdId,
-                user_type: decoded.isVolunteer ? 'volunteer' : 'student',
-                identifier: decoded.studentId || decoded.volunteerCode
-              })
-            }).catch(err => console.warn('Login tracking failed:', err));
+            liveTracking.trackLogin(
+              decoded.householdId,
+              decoded.studentId || decoded.volunteerCode || '',
+              decoded.isVolunteer ? 'volunteer' : 'student',
+              decoded.studentId || decoded.volunteerCode
+            );
           } catch (error) {
-            console.warn('Tracking failed:', error);
+            console.warn('Live tracking failed:', error);
           }
         } else {
           localStorage.removeItem('token');
@@ -95,20 +92,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Simple login tracking (non-blocking)
+        // Live tracking (non-blocking)
         try {
-          fetch('/.netlify/functions/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              route: '/track_login',
-              user_id: data.user.household_id,
-              user_type: 'student',
-              identifier: studentId.trim()
-            })
-          }).catch(err => console.warn('Login tracking failed:', err));
+          liveTracking.trackLogin(
+            data.user.household_id,
+            studentId.trim(),
+            'student',
+            studentId.trim()
+          );
         } catch (error) {
-          console.warn('Tracking failed:', error);
+          console.warn('Live tracking failed:', error);
         }
         
         return true;
@@ -137,20 +130,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Simple login tracking (non-blocking)
+        // Live tracking (non-blocking)
         try {
-          fetch('/.netlify/functions/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              route: '/track_login',
-              user_id: data.user.code,
-              user_type: 'volunteer',
-              identifier: volunteerCode.trim()
-            })
-          }).catch(err => console.warn('Login tracking failed:', err));
+          liveTracking.trackLogin(
+            data.user.code,
+            volunteerCode.trim(),
+            'volunteer',
+            volunteerCode.trim()
+          );
         } catch (error) {
-          console.warn('Tracking failed:', error);
+          console.warn('Live tracking failed:', error);
         }
         
         return true;

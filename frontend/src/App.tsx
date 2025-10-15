@@ -8,6 +8,7 @@ import VolunteerSelectPage from './features/select/VolunteerSelectPage';
 import PurchasePage from './features/purchase/PurchasePage';
 import StatusPage from './features/status/StatusPage';
 import AdminAnalyticsPage from './features/admin/AdminAnalyticsPage';
+import LiveAnalyticsPage from './features/admin/LiveAnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -56,6 +57,12 @@ function App() {
           <Route path="/admin-analytics" element={
             <ProtectedRoute requireAdmin={true}>
               <AdminAnalyticsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/live-analytics" element={
+            <ProtectedRoute requireAdmin={true}>
+              <LiveAnalyticsPage />
             </ProtectedRoute>
           } />
           
