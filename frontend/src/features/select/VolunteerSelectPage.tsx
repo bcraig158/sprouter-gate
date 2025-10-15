@@ -668,7 +668,7 @@ export default function VolunteerSelectPage() {
                   
                   <FAQItem 
                     question="Can I attend shows on both October 28 AND October 30?"
-                    answer="Yes! You can select: One show on October 28 (up to 4 tickets) and one show on October 30 (up to 4 tickets). Total: Up to 8 tickets across both nights."
+                    answer="Yes! You can select: One show on October 28 (2 tickets) and one show on October 30 (2 tickets). PLUS your 2 additional tickets that can be used to get a total of 4 tickets on the night of your choice! (These can only be redeemed for for one night, not both)"
                   />
                   
                   <FAQItem 
@@ -693,7 +693,7 @@ export default function VolunteerSelectPage() {
                   
                   <FAQItem 
                     question="I have 5 family members - can I get more than 4 tickets?"
-                    answer="Your volunteer bonus gives you up to 4 tickets per show. If you need more, contact us at maiduelementaryptc@gmail.com or call 916-749-0848 to discuss options, subject to availability."
+                    answer="Up to an additional 4 tickets may be purchased one week prior to the show, while supplies last."
                   />
                   
                   <FAQItem 
